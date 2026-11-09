@@ -14,8 +14,10 @@ import {
   lucideUserPlus,
   lucideUsers,
   lucideX,
+  lucideLogOut,
 } from '@ng-icons/lucide';
 import { filter } from 'rxjs';
+import { AuthService } from '../auth/auth.service';
 import { SessionStore } from '../auth/session.store';
 import { BACKOFFICE_NAV } from '../config/navigation.config';
 import { FR } from '../i18n/fr';
@@ -50,6 +52,7 @@ import { Brand, IobNotice, OfflineBanner } from './brand';
       lucideSettings,
       lucideMenu,
       lucideX,
+      lucideLogOut,
     }),
   ],
   host: { class: 'flex min-h-dvh bg-bg', '(document:keydown.escape)': 'closeDrawer()' },
@@ -62,7 +65,7 @@ import { Brand, IobNotice, OfflineBanner } from './brand';
 
     <!-- Desktop side menu -->
     <nav
-      class="sticky top-0 hidden h-dvh w-62 shrink-0 flex-col gap-1 overflow-y-auto bg-primary px-4 py-6 text-white lg:flex"
+      class="sticky top-0 hidden h-dvh w-62 shrink-0 flex-col gap-1 overflow-y-auto scrollbar-nav bg-primary px-4 py-5 text-white lg:flex"
       [attr.aria-label]="t.layout.mainMenu"
     >
       <ng-container *ngTemplateOutlet="menu" />
@@ -79,7 +82,7 @@ import { Brand, IobNotice, OfflineBanner } from './brand';
       ></button>
       <nav
         id="drawer"
-        class="fixed inset-y-0 left-0 z-50 flex w-[min(18rem,85vw)] flex-col gap-1 overflow-y-auto bg-primary px-4 py-6 text-white shadow-2xl lg:hidden"
+        class="fixed inset-y-0 left-0 z-50 flex w-[min(18rem,85vw)] flex-col gap-1 overflow-y-auto scrollbar-nav bg-primary px-4 py-5 text-white shadow-2xl lg:hidden"
         role="dialog"
         aria-modal="true"
         [attr.aria-label]="t.layout.mainMenu"
@@ -131,7 +134,7 @@ import { Brand, IobNotice, OfflineBanner } from './brand';
     </div>
 
     <ng-template #menu>
-      <app-brand [onDark]="true" [width]="200" class="mb-4" />
+      <app-brand [onDark]="true" [width]="184" class="mb-3" />
       <ul class="flex flex-col gap-1">
         @for (item of items(); track item.path) {
           <li>
@@ -140,7 +143,7 @@ import { Brand, IobNotice, OfflineBanner } from './brand';
               routerLinkActive="!bg-primary-hover !text-accent-light font-bold"
               #rla="routerLinkActive"
               [attr.aria-current]="rla.isActive ? 'page' : null"
-              class="flex min-h-12 items-center gap-3 rounded-control px-3.5 text-sm font-semibold text-nav-ink hover:bg-primary-hover hover:text-white"
+              class="flex min-h-12 items-center gap-3 rounded-control px-3.5 py-1.5 text-sm leading-tight font-semibold text-nav-ink hover:bg-primary-hover hover:text-white"
             >
               <ng-icon [name]="item.icon" size="20" aria-hidden="true" />{{ item.label }}
             </a>
@@ -152,9 +155,16 @@ import { Brand, IobNotice, OfflineBanner } from './brand';
           class="mt-auto rounded-control bg-primary-hover p-3.5 text-xs leading-normal text-nav-ink"
         >
           {{ t.layout.connectedAs }}<br />
-          <b class="text-sm text-white">{{ roleLabel() }}</b
+          <b class="text-sm text-white">{{ user.fullName }}</b
           ><br />
-          {{ roleHint() }}
+          {{ roleLabel() }} · {{ roleHint() }}
+          <button
+            type="button"
+            class="mt-2 flex min-h-11 w-full items-center gap-2 rounded-control px-2 text-sm font-semibold text-white hover:bg-primary"
+            (click)="logout()"
+          >
+            <ng-icon name="lucideLogOut" size="18" aria-hidden="true" />{{ t.layout.logout }}
+          </button>
         </div>
       }
     </ng-template>
@@ -178,13 +188,21 @@ export class BackofficeShell {
     return role ? FR.roleHints[role] : '';
   });
 
+  private readonly auth = inject(AuthService);
+  private readonly router = inject(Router);
+
   constructor() {
-    inject(Router)
-      .events.pipe(
+    this.router.events
+      .pipe(
         filter((e) => e instanceof NavigationEnd),
         takeUntilDestroyed(),
       )
       .subscribe(() => this.closeDrawer());
+  }
+
+  protected async logout(): Promise<void> {
+    await this.auth.logout();
+    await this.router.navigateByUrl('/connexion');
   }
 
   protected closeDrawer(): void {

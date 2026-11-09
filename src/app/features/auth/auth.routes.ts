@@ -1,4 +1,4 @@
 import { Routes } from '@angular/router';
-import { comingSoonRoute } from '../../shared/ui/page';
+import { Login } from './login';
 
-export default [comingSoonRoute('', 'Connexion', 'Phase 1')] satisfies Routes;
+export default [{ path: '', component: Login, title: 'Connexion — WASSIA' }] satisfies Routes;

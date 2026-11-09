@@ -2,6 +2,7 @@ import { ChangeDetectionStrategy, Component, inject, signal } from '@angular/cor
 import { Router } from '@angular/router';
 import { NgIcon, provideIcons } from '@ng-icons/core';
 import { lucideScanLine, lucideUserPlus, lucideRoute, lucideSend } from '@ng-icons/lucide';
+import { AuthService } from '../../core/auth/auth.service';
 import { SessionStore } from '../../core/auth/session.store';
 import { FR } from '../../core/i18n/fr';
 import { ROLES, Role } from '../../core/models';
@@ -319,6 +320,7 @@ export class Styleguide {
   protected readonly toast = inject(ToastService);
   private readonly confirm = inject(ConfirmService);
   private readonly router = inject(Router);
+  private readonly auth = inject(AuthService);
   protected readonly t = FR;
   protected readonly roles = ROLES;
   protected readonly selected = signal<string | undefined>(undefined);
@@ -390,9 +392,10 @@ export class Styleguide {
     return row as AgentRow;
   }
 
-  protected preview(role: Role): void {
-    this.session.switchRole(role);
-    if (role === 'AGENT') void this.router.navigateByUrl('/agent/accueil');
+  /** Logs in as another demo profile (same as the dev panel). */
+  protected async preview(role: Role): Promise<void> {
+    await this.auth.login({ role });
+    if (role === 'AGENT') await this.router.navigateByUrl('/agent/accueil');
   }
 
   protected askReason(): void {

@@ -1,5 +1,5 @@
 import { Routes } from '@angular/router';
-import { homeRedirect, permissionGuard } from './core/auth/permission.guard';
+import { authGuard, homeRedirect, permissionGuard } from './core/auth/permission.guard';
 
 /** Set by the Angular CLI; replaced by `false` in production builds so dead code is removed. */
 declare const ngDevMode: unknown;
@@ -14,6 +14,7 @@ const devRoutes: Routes =
     : [
         {
           path: 'dev/styleguide',
+          canMatch: [authGuard],
           title: 'Guide de style — WASSIA',
           loadComponent: () =>
             import('./core/layout/backoffice-shell').then((m) => m.BackofficeShell),
@@ -33,12 +34,13 @@ export const routes: Routes = [
   { path: 'pay', loadChildren: () => import('./features/public-pay/public-pay.routes') },
   {
     path: 'agent',
-    canMatch: [permissionGuard('collect.field')],
+    canMatch: [authGuard, permissionGuard('collect.field')],
     loadComponent: () => import('./core/layout/agent-shell').then((m) => m.AgentShell),
     loadChildren: () => import('./features/agent/agent.routes'),
   },
   {
     path: 'app',
+    canMatch: [authGuard],
     loadComponent: () => import('./core/layout/backoffice-shell').then((m) => m.BackofficeShell),
     children: [
       { path: '', pathMatch: 'full', redirectTo: homeRedirect },

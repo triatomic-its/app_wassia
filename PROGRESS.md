@@ -3,7 +3,7 @@
 | #   | Phase                                             | État                    |
 | --- | ------------------------------------------------- | ----------------------- |
 | 0   | Socle                                             | ✅ terminé (2026-11-09) |
-| 1   | Faux back + auth                                  | ⬜                      |
+| 1   | Faux back + auth                                  | ✅ terminé (2026-11-09) |
 | 2   | Agent : inscription                               | ⬜                      |
 | 3   | Cartes & page du QR                               | ⬜                      |
 | 4   | Agent : collecte (hors ligne)                     | ⬜                      |
@@ -17,5 +17,12 @@
 - **Fait** : spec réalignée sur la maquette (PWA unique, adhésion automatique, clôture en 3 niveaux, crédit inclus) ; Tailwind 4 + jetons de la charte (`src/styles.css`), polices auto-hébergées, logos SVG officiels ; ESLint + Prettier + Husky ; PWA (manifest, service worker) ; configs (7 rôles, workflows, grille crédit, navigation) ; pipes `fcfa`/`abidjanDate`/`maskName` ; `shared/ui` + `/dev/styleguide` ; shells back-office et agent responsive (vérifiés à 390, 820 et 1440 px).
 - **Vérifié** : `npm run lint`, `npm test` (28 tests), `npm run build` (initial 365 kB) au vert.
 - **Logos** : SVG officiels intégrés (logo horizontal blanc sur menu bleu marine, symbole couleur sur le rail agent, favicon), icônes PWA générées depuis le symbole carré.
-- **Reste** : `SessionStore` contient un utilisateur fictif tant que l'auth n'existe pas (Phase 1).
+- **Reste** : rien (l’utilisateur fictif a été remplacé par la connexion en Phase 1).
 - **Hypothèses ajoutées** : A11 à A17 (voir `ASSUMPTIONS.md`).
+
+## Phase 1 — Faux back + auth (2026-11-09)
+
+- **Fait** : faux serveur `src/app/mocks/` (intercepteur sur les vrais chemins `/api/v1`, base en mémoire gardée dans le navigateur, données de départ déterministes : 12 utilisateurs, 120 marchands, 1 000 cartes, ~600 paiements dont 2 orphelins / 2 doublons / 1 en attente, 4 clôtures dont 1 avec écart, remises des agents du jour, grand livre équilibré avec une contre-écriture, 9 crédits à tous les statuts, gabarits et journal SMS) ; lenteur et erreurs simulées ; panneau « Démo » (profil, horloge simulée, lenteur, erreur, réinitialisation) ; `AuthService` (démo + interface Keycloak), `GET /me`, garde de connexion, page de connexion, déconnexion ; menu latéral plus compact.
+- **Vérifié** : lint, 53 tests, build ; le faux serveur et le panneau ne sont pas dans le build de production ; captures à 390 et 1440 px.
+- **Reste** : flux Keycloak réel (A18) ; les écrans métier arrivent à partir de la Phase 2.
+- **Hypothèses ajoutées** : A18, A19.

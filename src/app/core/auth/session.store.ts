@@ -1,44 +1,36 @@
 import { Injectable, computed, signal } from '@angular/core';
-import { Permission, permissionsOf, READ_ONLY_ROLES } from '../config/permissions.config';
+import { Permission, READ_ONLY_ROLES } from '../config/permissions.config';
 import { Role, User } from '../models';
 
 /**
- * Holds the current user in memory only (never in localStorage).
- * Phase 0: seeded with a placeholder user so the shells can render.
- * Phase 1: filled by `AuthService` from `GET /me` (role and permissions are never read from the token).
+ * Current user and permissions, in memory only (never in localStorage).
+ * Filled by `AuthService` from `GET /me`: role and permissions are never read from the token.
  */
 @Injectable({ providedIn: 'root' })
 export class SessionStore {
-  private readonly _user = signal<User | null>({
-    id: 'u-dev',
-    fullName: 'Utilisateur de démonstration',
-    phone: '',
-    role: 'DG',
-    active: true,
-  });
+  private readonly _user = signal<User | null>(null);
+  private readonly _permissions = signal<ReadonlySet<Permission>>(new Set());
 
   readonly user = this._user.asReadonly();
+  readonly permissions = this._permissions.asReadonly();
+  readonly authenticated = computed(() => this._user() !== null);
   readonly role = computed<Role | null>(() => this._user()?.role ?? null);
-  readonly permissions = computed<ReadonlySet<Permission>>(() => {
-    const role = this.role();
-    return role ? permissionsOf(role) : new Set<Permission>();
-  });
   readonly readOnly = computed(() => {
     const role = this.role();
     return role !== null && READ_ONLY_ROLES.includes(role);
   });
 
   can(permission: Permission): boolean {
-    return this.permissions().has(permission);
+    return this._permissions().has(permission);
   }
 
-  setUser(user: User | null): void {
+  setSession(user: User, permissions: readonly Permission[]): void {
     this._user.set(user);
+    this._permissions.set(new Set(permissions));
   }
 
-  /** Dev only (styleguide / dev panel): preview another role. */
-  switchRole(role: Role): void {
-    const current = this._user();
-    if (current) this._user.set({ ...current, role });
+  clear(): void {
+    this._user.set(null);
+    this._permissions.set(new Set());
   }
 }

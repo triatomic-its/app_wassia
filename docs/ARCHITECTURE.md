@@ -19,7 +19,15 @@ One responsive Angular 22 PWA for everyone (decision of 2026-11-09):
 | `features/*`                                     | Lazy-loaded screens; never import another feature                                                              | `core`, `shared` |
 | `mocks/`                                         | Fake back end (Phase 1); removable without touching anything else                                              | everything       |
 
-ESLint forbids importing `mocks/` from anywhere except `mocks/` and `app.config.ts`.
+ESLint forbids importing `mocks/` from anywhere except `mocks/` and `app.config.ts`. `core/auth/auth.mock.ts` (demo login) lives in core but never imports `mocks/`.
+
+## Fake back end (development only)
+
+- `mocks/index.ts` provides the mock interceptor, `MockDb`, `MockControl`, `MockAuthService` and mounts the dev panel. In production it is swapped for `mocks/index.prod.ts` (empty) via `fileReplacements`, so no mock code ships.
+- Interceptor order: `authInterceptor` → `errorInterceptor` → `mockBackendInterceptor` (last, acts as the server).
+- Data: `mocks/seed/seed.ts` (seeded PRNG, reproducible), persisted in localStorage under `wassia.mock.db.v1`. Bump `MOCK_DATA_VERSION` when the shape changes.
+- Routes: `mocks/handlers/index.ts` — one entry per endpoint with its required permissions, mirroring docs/API_CONTRACT.md.
+- To switch to the real back end: `useMock: false` + `apiBaseUrl`, then wire Keycloak in `core/auth/auth.oidc.ts`.
 
 ## Rules encoded in config, never in components
 

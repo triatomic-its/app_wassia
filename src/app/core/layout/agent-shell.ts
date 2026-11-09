@@ -1,13 +1,15 @@
 import { ChangeDetectionStrategy, Component, computed, inject } from '@angular/core';
-import { RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
+import { Router, RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
 import { NgIcon, provideIcons } from '@ng-icons/core';
 import {
   lucideHandCoins,
   lucideHouse,
+  lucideLogOut,
   lucideRoute,
   lucideScanLine,
   lucideUserPlus,
 } from '@ng-icons/lucide';
+import { AuthService } from '../auth/auth.service';
 import { SessionStore } from '../auth/session.store';
 import { AGENT_NAV } from '../config/navigation.config';
 import { FR } from '../i18n/fr';
@@ -25,7 +27,14 @@ import { NetworkStatus } from './network-status';
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [RouterOutlet, RouterLink, RouterLinkActive, NgIcon, Brand, OfflineBanner],
   providers: [
-    provideIcons({ lucideHouse, lucideRoute, lucideScanLine, lucideUserPlus, lucideHandCoins }),
+    provideIcons({
+      lucideLogOut,
+      lucideHouse,
+      lucideRoute,
+      lucideScanLine,
+      lucideUserPlus,
+      lucideHandCoins,
+    }),
   ],
   host: { class: 'flex min-h-dvh bg-bg' },
   template: `
@@ -57,17 +66,26 @@ import { NetworkStatus } from './network-status';
           <div class="truncate font-display text-xl font-bold">{{ greeting() }}</div>
         </div>
         <app-brand [onDark]="true" [width]="150" class="hidden lg:block" />
-        <span
-          class="flex shrink-0 items-center gap-2 rounded-pill bg-primary-hover px-3 py-1.5 text-xs font-semibold"
-          role="status"
-        >
+        <div class="flex shrink-0 items-center gap-2">
           <span
-            class="size-2 rounded-full"
-            [class]="network.online() ? 'bg-emerald' : 'bg-accent'"
-            aria-hidden="true"
-          ></span>
-          {{ network.online() ? t.layout.online : t.layout.offlineShort }}
-        </span>
+            class="flex shrink-0 items-center gap-2 rounded-pill bg-primary-hover px-3 py-1.5 text-xs font-semibold"
+            role="status"
+          >
+            <span
+              class="size-2 rounded-full"
+              [class]="network.online() ? 'bg-emerald' : 'bg-accent'"
+              aria-hidden="true"
+            ></span>
+            {{ network.online() ? t.layout.online : t.layout.offlineShort }}
+          </span>
+          <button
+            type="button"
+            class="flex min-h-11 items-center gap-1.5 rounded-pill px-3 text-xs font-semibold text-nav-ink hover:bg-primary-hover"
+            (click)="logout()"
+          >
+            <ng-icon name="lucideLogOut" size="18" aria-hidden="true" />Quitter
+          </button>
+        </div>
       </header>
 
       <app-offline-banner />
@@ -114,6 +132,14 @@ export class AgentShell {
   protected readonly network = inject(NetworkStatus);
   protected readonly t = FR;
   protected readonly today = formatAbidjanDate(new Date(), 'long');
+
+  private readonly auth = inject(AuthService);
+  private readonly router = inject(Router);
+
+  protected async logout(): Promise<void> {
+    await this.auth.logout();
+    await this.router.navigateByUrl('/connexion');
+  }
 
   protected readonly items = computed(() => {
     const perms = this.session.permissions();

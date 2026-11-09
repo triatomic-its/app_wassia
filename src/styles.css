@@ -60,6 +60,12 @@
   --spacing-touch: 3rem; /* 48px */
 }
 
+/* Thin, on-brand scrollbar for the navy side menu (only shows when the screen is short or zoomed). */
+@utility scrollbar-nav {
+  scrollbar-width: thin;
+  scrollbar-color: var(--color-primary-hover) transparent;
+}
+
 @layer base {
   html {
     -webkit-text-size-adjust: 100%;
