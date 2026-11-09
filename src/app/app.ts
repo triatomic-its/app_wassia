@@ -1,12 +1,14 @@
-import { Component, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component } from '@angular/core';
 import { RouterOutlet } from '@angular/router';
+import { NgxSonnerToaster } from 'ngx-sonner';
 
 @Component({
-  imports: [RouterOutlet],
   selector: 'app-root',
-  styleUrl: './app.scss',
-  templateUrl: './app.html',
+  changeDetection: ChangeDetectionStrategy.OnPush,
+  imports: [RouterOutlet, NgxSonnerToaster],
+  template: `
+    <router-outlet />
+    <ngx-sonner-toaster position="top-center" [richColors]="true" [closeButton]="true" />
+  `,
 })
-export class App {
-  protected readonly title = signal('app-wassia');
-}
+export class App {}

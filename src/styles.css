@@ -1,0 +1,98 @@
+/*
+ * Global styles: fonts, design tokens and base layer only.
+ * Everything else is written with Tailwind utility classes in templates.
+ * Colours come from the WASSIA brand guidelines (charte v1.0) and the client mockup.
+ */
+@import '@fontsource/open-sans/latin-400.css';
+@import '@fontsource/open-sans/latin-600.css';
+@import '@fontsource/poppins/latin-600.css';
+@import '@fontsource/poppins/latin-700.css';
+
+@import 'tailwindcss';
+@import 'tw-animate-css';
+
+@theme {
+  /* Fonts */
+  --font-sans: 'Open Sans', system-ui, sans-serif;
+  --font-display: 'Poppins', 'Open Sans', system-ui, sans-serif;
+
+  /* Brand (charte) */
+  --color-primary: #0a2a5e; /* Bleu marine — dominant */
+  --color-primary-hover: #0e3a7e;
+  --color-primary-deep: #001a3d; /* Bleu roi */
+  --color-night: #000d1f; /* Bleu nuit */
+  --color-accent: #d4af37; /* Or */
+  --color-accent-light: #f5d76e; /* Or clair */
+  --color-emerald: #00a86b; /* Vert émeraude — Inclusion financière */
+  --color-sapin: #007a4d; /* Vert sapin — agent primary action */
+  --color-sapin-hover: #00663f;
+  --color-forest: #004d30; /* Vert foncé */
+
+  /* Interface (mockup) */
+  --color-bg: #f4f6fa;
+  --color-surface: #ffffff;
+  --color-surface-alt: #f8fafd;
+  --color-ink: #0b1b33;
+  --color-ink-muted: #4a5878;
+  --color-ink-soft: #2e3b57;
+  --color-border: #dce2ec;
+  --color-border-soft: #e4e9f2;
+  --color-nav-ink: #c9d4ea; /* inactive items on navy */
+
+  /* Status pairs: text on soft background (contrast >= 4.5:1) */
+  --color-success: #00573a;
+  --color-success-soft: #e3f5ec;
+  --color-danger: #9b1c12;
+  --color-danger-soft: #fde7e4;
+  --color-warning: #5c3600;
+  --color-warning-soft: #fff1d6;
+  --color-info: #0e3a7e;
+  --color-info-soft: #eaf0fb;
+  --color-neutral: #2e3b57;
+  --color-neutral-soft: #e4e9f2;
+
+  /* Radius */
+  --radius-control: 10px; /* buttons, inputs */
+  --radius-card: 14px;
+  --radius-pill: 20px;
+
+  /* Touch target */
+  --spacing-touch: 3rem; /* 48px */
+}
+
+@layer base {
+  html {
+    -webkit-text-size-adjust: 100%;
+  }
+
+  body {
+    @apply bg-bg font-sans text-base text-ink antialiased;
+    margin: 0;
+  }
+
+  h1,
+  h2,
+  h3 {
+    @apply font-display text-primary;
+  }
+
+  :focus-visible {
+    outline: 3px solid var(--color-accent);
+    outline-offset: 2px;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.01ms !important;
+      transition-duration: 0.01ms !important;
+    }
+  }
+}
+
+@media print {
+  body {
+    @apply bg-white;
+  }
+}
