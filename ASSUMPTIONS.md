@@ -1,0 +1,22 @@
+# ASSUMPTIONS — hypothèses à confirmer avec le client
+
+Chaque hypothèse est isolée dans un fichier de config (colonne « Où »). Format : id, date, hypothèse, question, à confirmer avec.
+
+| Id | Date | Hypothèse | Où | À confirmer avec |
+|---|---|---|---|---|
+| A1 | 2026-11-09 | Matrice à 7 rôles tirée de la maquette (DG, Directeur adjoint en lecture seule, Chef d'agence, Gestionnaire, Comptable, Caissière, Agent) | `core/config/permissions.config.ts` | M. Konaté |
+| A2 | 2026-11-09 | Adhésion sans validation manuelle : compte créé automatiquement → paiement 1 000 F → carte associée par l'agent → actif | `core/config/workflow.config.ts` | M. Konaté |
+| A3 | 2026-11-09 | Pôles : Immobilier, Transport, Innov Finance, Voyage, Commerce. **La maquette du site affiche aussi un pôle Agrobusiness**, et la charte nomme « Flottes GPS » et « Import-Export ». Quelle est la liste officielle ? | `core/config/poles.config.ts` | PDG |
+| A4 | 2026-11-09 | Montants par défaut : adhésion 1 000 F, épargne 2 000 F, frais de dossier 5 000 F — modifiables en admin | `core/config/payment-types.config.ts` | M. Konaté |
+| A5 | 2026-11-09 | Plafond de caisse 2 000 000 F, coupure 16h00, comptage 16h30 | `core/config/settings.defaults.ts` | Comptable |
+| A6 | 2026-11-09 | Module crédit inclus (décision du 09/11/2026) ; un avenant au contrat signé (qui l'excluait) est à prévoir | `core/config/feature-flags.ts` | Aman / client |
+| A7 | 2026-11-09 | Paiements : Wave (API), Orange, MTN, Moov, espèces ; seul Wave simulé de bout en bout | `core/config/payment-types.config.ts` | Client |
+| A8 | 2026-11-09 | Numéros de carte `WAS-000001…001000` (format de la maquette, à la place de `WASSIA-2026-0001`), QR = jeton opaque | `core/config/cards.config.ts` | Client |
+| A9 | 2026-11-09 | Plan de comptes SYSCOHADA simplifié en seed, à remplacer par celui du comptable | `mocks/seed` | Comptable |
+| A10 | 2026-11-09 | Mention « Intermédiaire en opérations de banque (IOB) » sans numéro d'agrément | `core/i18n/fr.ts` | Client |
+| A11 | 2026-11-09 | Seuils d'approbation de crédit : rien n'est prévu entre 500 000 et 1 M ni entre 3 M et 5 M. Hypothèse : ]500 000 ; 3 M] → DG seul ; > 3 M → DG + comptable | `core/config/loan.config.ts` | M. Konaté |
+| A12 | 2026-11-09 | Taux de la grille de crédit (8 %, 18 %, 28 %) à faire vérifier juridiquement avant tout affichage public ; affichés uniquement en back-office | `core/config/loan.config.ts` | Juriste / client |
+| A13 | 2026-11-09 | La carte membre est une carte prépayée Wave : son solde **est** l'épargne affichée (un seul montant) | `core/models` | Client |
+| A14 | 2026-11-09 | Le rappel de paiement d'adhésion est « conseillé » après 24 h sans paiement | `core/config/settings.defaults.ts` | M. Konaté |
+| A15 | 2026-11-09 | Le Directeur adjoint est en consultation seulement (nom fictif dans la maquette) | `core/config/permissions.config.ts` | Client |
+| A16 | 2026-11-09 | Logo : en attente du fichier .SVG officiel ; un symbole provisoire est utilisé | `public/logo/` | Service communication |
