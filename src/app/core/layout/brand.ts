@@ -1,4 +1,3 @@
-import { NgOptimizedImage } from '@angular/common';
 import { ChangeDetectionStrategy, Component, inject, input } from '@angular/core';
 import { NgIcon, provideIcons } from '@ng-icons/core';
 import { lucideWifiOff } from '@ng-icons/lucide';
@@ -6,43 +5,42 @@ import { FR } from '../i18n/fr';
 import { NetworkStatus } from './network-status';
 
 /**
- * Logo symbol + "GROUPE WASSIA" wordmark. Brand rules: never stretched, recoloured or rotated;
- * at least 120 px wide on screen. The PNG comes from the client mockup (ASSUMPTION A16: SVG pending).
+ * Official logo files (public/logo, charte v1.0). Brand rules: never stretched, recoloured,
+ * rotated, or split into symbol + text; at least 120 px wide on screen.
+ * - `horizontal`: full logo. White monochrome on navy backgrounds, colour on white.
+ * - `symbol`: colour symbol only — allowed for the mobile app (narrow agent rail).
  */
 @Component({
   selector: 'app-brand',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [NgOptimizedImage],
-  host: { class: 'flex items-center gap-3' },
+  host: { class: 'block' },
   template: `
-    <img
-      ngSrc="logo/wassia-logo.png"
-      width="150"
-      height="168"
-      alt=""
-      class="h-11 w-auto"
-      priority
-    />
-    <span
-      class="flex flex-col leading-none"
-      [class.text-white]="onDark()"
-      [class.text-primary]="!onDark()"
-    >
-      <span class="font-display text-xs font-bold tracking-[0.2em]">GROUPE</span>
-      <span
-        class="font-display text-xl font-bold tracking-wider"
-        [class.text-emerald]="onDark()"
-        [class.text-sapin]="!onDark()"
-      >
-        WASSIA
-      </span>
-      <span class="sr-only">{{ name }}</span>
-    </span>
+    @if (variant() === 'symbol') {
+      <img [src]="symbolSrc()" width="216" height="242" [alt]="name" class="h-auto w-14" />
+    } @else {
+      <img
+        [src]="horizontalSrc()"
+        width="704"
+        height="274"
+        [alt]="name"
+        class="h-auto"
+        [style.width.px]="width()"
+      />
+    }
   `,
 })
 export class Brand {
   readonly onDark = input(false);
-  protected readonly name = FR.app.name;
+  readonly variant = input<'horizontal' | 'symbol'>('horizontal');
+  /** Rendered width in px (minimum 120 per the brand guidelines). */
+  readonly width = input(200, { transform: (w: number) => Math.max(120, w) });
+  protected readonly name = 'GROUPE WASSIA SARL';
+  protected readonly horizontalSrc = () =>
+    this.onDark()
+      ? 'logo/logo-horizontal_monochrome-blanc.svg'
+      : 'logo/logo-horizontal_couleur.svg';
+  /** The colour symbol is allowed on navy too (gold outline keeps it readable). */
+  protected readonly symbolSrc = () => 'logo/symbole_couleur.svg';
 }
 
 /** IOB legal notice — required in the footer and on printed documents. */

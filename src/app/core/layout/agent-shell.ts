@@ -34,13 +34,7 @@ import { NetworkStatus } from './network-status';
       class="sticky top-0 hidden h-dvh w-28 shrink-0 flex-col items-stretch gap-1 bg-primary px-2 py-5 md:flex"
       [attr.aria-label]="t.layout.mainMenu"
     >
-      <img
-        src="logo/wassia-logo.png"
-        width="150"
-        height="168"
-        alt=""
-        class="mx-auto mb-5 h-12 w-auto"
-      />
+      <app-brand variant="symbol" class="mx-auto mb-5" />
       @for (item of items(); track item.path) {
         <a
           [routerLink]="item.path"
@@ -62,7 +56,7 @@ import { NetworkStatus } from './network-status';
           <div class="text-sm text-nav-ink">{{ today }}</div>
           <div class="truncate font-display text-xl font-bold">{{ greeting() }}</div>
         </div>
-        <app-brand [onDark]="true" class="hidden lg:flex" />
+        <app-brand [onDark]="true" [width]="150" class="hidden lg:block" />
         <span
           class="flex shrink-0 items-center gap-2 rounded-pill bg-primary-hover px-3 py-1.5 text-xs font-semibold"
           role="status"

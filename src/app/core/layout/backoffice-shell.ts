@@ -112,7 +112,7 @@ import { Brand, IobNotice, OfflineBanner } from './brand';
           <ng-icon name="lucideMenu" size="24" aria-hidden="true" />
           <span>Menu</span>
         </button>
-        <app-brand [onDark]="true" class="ml-auto [&_img]:h-9" />
+        <app-brand [onDark]="true" [width]="130" class="ml-auto" />
       </header>
 
       <app-offline-banner />
@@ -131,7 +131,7 @@ import { Brand, IobNotice, OfflineBanner } from './brand';
     </div>
 
     <ng-template #menu>
-      <app-brand [onDark]="true" class="mb-5 px-2" />
+      <app-brand [onDark]="true" [width]="200" class="mb-4" />
       <ul class="flex flex-col gap-1">
         @for (item of items(); track item.path) {
           <li>
