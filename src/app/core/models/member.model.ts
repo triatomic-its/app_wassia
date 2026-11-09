@@ -26,13 +26,17 @@ export interface Member {
   agentId: string;
   status: EnrollmentStatus;
   statusReason?: string;
+  /** Identity document number (CNI). */
+  idNumber?: string;
   cardId?: string;
   accountNumber?: string;
   /** Prepaid card balance — this IS the savings (ASSUMPTION A13). */
   savings: Fcfa;
   /** Expected daily deposit. */
   dailyTarget?: Fcfa;
+  /** Photo of the stall / business. */
   photoUrl?: string;
+  /** Photo of the identity document. */
   idDocUrl?: string;
   createdAt: IsoDateTime;
   updatedAt: IsoDateTime;

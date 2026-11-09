@@ -5,9 +5,16 @@ import { cn } from './cn';
 @Component({
   selector: 'app-stat-card',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  host: { class: 'block min-w-0 rounded-card border border-border bg-surface px-5 py-4' },
+  host: {
+    class: 'block min-w-0 rounded-card border border-border bg-surface',
+    '[class.px-5]': '!compact()',
+    '[class.py-4]': '!compact()',
+    '[class.p-3.5]': 'compact()',
+  },
   template: `
-    <div class="text-sm text-ink-muted">{{ label() }}</div>
+    <div class="text-ink-muted" [class.text-sm]="!compact()" [class.text-xs]="compact()">
+      {{ label() }}
+    </div>
     <div [class]="valueClass()">{{ value() }}</div>
     @if (hint()) {
       <div class="mt-0.5 text-xs text-ink-muted">{{ hint() }}</div>
@@ -19,12 +26,18 @@ export class StatCard {
   readonly value = input.required<string | number>();
   readonly hint = input<string>();
   readonly tone = input<'default' | 'danger' | 'success'>('default');
+  /** Smaller tile for phone screens (agent home). */
+  readonly compact = input(false);
 
   protected readonly valueClass = computed(() =>
-    cn('mt-1.5 font-display text-2xl font-bold sm:text-[1.75rem]', {
-      'text-primary': this.tone() === 'default',
-      'text-danger': this.tone() === 'danger',
-      'text-sapin': this.tone() === 'success',
-    }),
+    cn(
+      'font-display font-bold',
+      this.compact() ? 'mt-1 text-[1.375rem]' : 'mt-1.5 text-2xl sm:text-[1.75rem]',
+      {
+        'text-primary': this.tone() === 'default',
+        'text-danger': this.tone() === 'danger',
+        'text-sapin': this.tone() === 'success',
+      },
+    ),
   );
 }

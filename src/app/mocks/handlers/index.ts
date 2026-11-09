@@ -1,7 +1,11 @@
 import { ROLE_PERMISSIONS } from '../../core/config/permissions.config';
 import { FR } from '../../core/i18n/fr';
 import { ROLES } from '../../core/models';
+import { EnrollmentInput } from '../../core/domain/enrollment';
+import { maskName } from '../../shared/pipes/mask-name.pipe';
+import { agentToday, assignCard, createMember, findByPhone, findCard } from '../domain';
 import { MockContext, MockRoute, fail, matchesText, paginate } from '../http';
+import { MockData } from '../seed/seed';
 
 /** Agents only see their own merchants and collections. */
 function scopeToAgent<T extends { agentId?: string }>(ctx: MockContext, items: T[]): T[] {
@@ -89,6 +93,73 @@ export const MOCK_ROUTES: readonly MockRoute[] = [
         matchesText([m.fullName, m.phone, m.accountNumber, cardNumber.get(m.cardId ?? '')], q),
       );
       return paginate(items, ctx.query);
+    },
+  },
+  {
+    method: 'GET',
+    pattern: '/agent/today',
+    access: ['collect.field'],
+    handler: (ctx) => agentToday(ctx.db.snapshot as MockData, ctx.user!, ctx.now),
+  },
+  {
+    method: 'GET',
+    pattern: '/members/phone-check',
+    access: ['member.enroll'],
+    handler: (ctx) => {
+      const existing = findByPhone(ctx.db.snapshot as MockData, ctx.query.get('phone') ?? '');
+      return existing
+        ? { available: false, existingName: maskName(existing.fullName) }
+        : { available: true };
+    },
+  },
+  {
+    method: 'POST',
+    pattern: '/members',
+    access: ['member.enroll'],
+    status: 201,
+    handler: (ctx) =>
+      ctx.db.write((data) =>
+        createMember(data, ctx.user!, (ctx.body ?? {}) as Partial<EnrollmentInput>, ctx.now),
+      ),
+  },
+  {
+    method: 'POST',
+    pattern: '/uploads',
+    access: 'user',
+    status: 201,
+    // Simulated upload: the file stays on the device, only a reference is stored.
+    handler: () => ({
+      url: 'mock-upload://' + Date.now().toString(36) + Math.random().toString(36).slice(2, 8),
+    }),
+  },
+  {
+    method: 'GET',
+    pattern: '/cards/lookup',
+    access: ['card.assign', 'cards.manage'],
+    handler: (ctx) => {
+      const card = findCard(ctx.db.snapshot as MockData, {
+        qr: ctx.query.get('qr'),
+        number: ctx.query.get('number'),
+      });
+      if (!card) throw fail(404, 'CARD_NOT_FOUND', 'Carte inconnue. Vérifiez le numéro imprimé.');
+      return { card: { id: card.id, printedNumber: card.printedNumber, status: card.status } };
+    },
+  },
+  {
+    method: 'POST',
+    pattern: '/cards/assign',
+    access: ['card.assign'],
+    handler: (ctx) => {
+      const body = (ctx.body ?? {}) as { memberId?: string; qrToken?: string; number?: string };
+      return ctx.db.write((data) =>
+        assignCard(
+          data,
+          ctx.user!,
+          body.memberId ?? '',
+          findCard(data, { qr: body.qrToken, number: body.number }),
+          ctx.now,
+        ),
+      );
     },
   },
   {

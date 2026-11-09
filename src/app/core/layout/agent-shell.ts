@@ -2,6 +2,7 @@ import { ChangeDetectionStrategy, Component, computed, inject } from '@angular/c
 import { Router, RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
 import { NgIcon, provideIcons } from '@ng-icons/core';
 import {
+  lucideArrowLeft,
   lucideHandCoins,
   lucideHouse,
   lucideLogOut,
@@ -14,6 +15,8 @@ import { SessionStore } from '../auth/session.store';
 import { AGENT_NAV } from '../config/navigation.config';
 import { FR } from '../i18n/fr';
 import { formatAbidjanDate } from '../../shared/pipes/abidjan-date.pipe';
+import { ClockService } from '../realtime/clock.service';
+import { AgentHeader, AgentHeaderState } from './agent-header';
 import { Brand, OfflineBanner } from './brand';
 import { NetworkStatus } from './network-status';
 
@@ -28,6 +31,7 @@ import { NetworkStatus } from './network-status';
   imports: [RouterOutlet, RouterLink, RouterLinkActive, NgIcon, Brand, OfflineBanner],
   providers: [
     provideIcons({
+      lucideArrowLeft,
       lucideLogOut,
       lucideHouse,
       lucideRoute,
@@ -61,10 +65,26 @@ import { NetworkStatus } from './network-status';
       <header
         class="flex items-center justify-between gap-3 bg-primary px-5 pt-[max(1rem,env(safe-area-inset-top))] pb-4 text-white"
       >
-        <div class="min-w-0">
-          <div class="text-sm text-nav-ink">{{ today }}</div>
-          <div class="truncate font-display text-xl font-bold">{{ greeting() }}</div>
-        </div>
+        @if (header.state(); as page) {
+          <div class="flex min-w-0 items-center gap-2">
+            @if (page.back || page.onBack) {
+              <button
+                type="button"
+                class="-ml-2 flex size-11 shrink-0 items-center justify-center rounded-full hover:bg-primary-hover"
+                aria-label="Retour"
+                (click)="goBack(page)"
+              >
+                <ng-icon name="lucideArrowLeft" size="24" aria-hidden="true" />
+              </button>
+            }
+            <h1 class="truncate font-display text-xl font-bold text-white">{{ page.title }}</h1>
+          </div>
+        } @else {
+          <div class="min-w-0">
+            <div class="text-sm text-nav-ink">{{ today() }}</div>
+            <div class="truncate font-display text-xl font-bold">{{ greeting() }}</div>
+          </div>
+        }
         <app-brand [onDark]="true" [width]="150" class="hidden lg:block" />
         <div class="flex shrink-0 items-center gap-2">
           <span
@@ -76,11 +96,14 @@ import { NetworkStatus } from './network-status';
               [class]="network.online() ? 'bg-emerald' : 'bg-accent'"
               aria-hidden="true"
             ></span>
-            {{ network.online() ? t.layout.online : t.layout.offlineShort }}
+            <span [class]="header.state() ? 'sr-only md:not-sr-only' : ''">{{
+              network.online() ? t.layout.online : t.layout.offlineShort
+            }}</span>
           </span>
           <button
             type="button"
-            class="flex min-h-11 items-center gap-1.5 rounded-pill px-3 text-xs font-semibold text-nav-ink hover:bg-primary-hover"
+            class="min-h-11 items-center gap-1.5 rounded-pill px-3 text-xs font-semibold text-nav-ink hover:bg-primary-hover"
+            [class]="header.state() ? 'hidden md:flex' : 'flex'"
             (click)="logout()"
           >
             <ng-icon name="lucideLogOut" size="18" aria-hidden="true" />Quitter
@@ -131,10 +154,17 @@ export class AgentShell {
   protected readonly session = inject(SessionStore);
   protected readonly network = inject(NetworkStatus);
   protected readonly t = FR;
-  protected readonly today = formatAbidjanDate(new Date(), 'long');
+  protected readonly header = inject(AgentHeader);
+  private readonly clock = inject(ClockService);
+  protected readonly today = computed(() => formatAbidjanDate(this.clock.now(), 'long'));
 
   private readonly auth = inject(AuthService);
   private readonly router = inject(Router);
+
+  protected goBack(page: AgentHeaderState): void {
+    if (page.onBack) page.onBack();
+    else if (page.back) void this.router.navigateByUrl(page.back);
+  }
 
   protected async logout(): Promise<void> {
     await this.auth.logout();

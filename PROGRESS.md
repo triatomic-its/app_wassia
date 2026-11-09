@@ -4,7 +4,7 @@
 | --- | ------------------------------------------------- | ----------------------- |
 | 0   | Socle                                             | ✅ terminé (2026-11-09) |
 | 1   | Faux back + auth                                  | ✅ terminé (2026-11-09) |
-| 2   | Agent : inscription                               | ⬜                      |
+| 2   | Agent : inscription                               | ✅ terminé (2026-11-09) |
 | 3   | Cartes & page du QR                               | ⬜                      |
 | 4   | Agent : collecte (hors ligne)                     | ⬜                      |
 | 5   | Back-office : supervision, enrôlements, marchands | ⬜                      |
@@ -26,3 +26,10 @@
 - **Vérifié** : lint, 53 tests, build ; le faux serveur et le panneau ne sont pas dans le build de production ; captures à 390 et 1440 px.
 - **Reste** : flux Keycloak réel (A18) ; les écrans métier arrivent à partir de la Phase 2.
 - **Hypothèses ajoutées** : A18, A19.
+
+## Phase 2 — Agent : inscription (2026-11-09)
+
+- **Fait** : accueil du jour de l'agent (compte à rebours 16 h 00, collecte, versements, inscrits, cartes à associer, retards, à remettre) ; inscription en 3 étapes (identité avec contrôle du doublon de téléphone, photos CNI + commerce, vérification) avec brouillon gardé sur l'appareil ; compte créé automatiquement + SMS ; « Mes inscriptions » ; association d'une carte vierge (scan QR si le téléphone le permet, sinon numéro imprimé) ; titre et flèche retour dans la barre de l'agent ; panneau Démo : simuler le paiement de 1 000 F et prochaine carte vierge. Faux serveur : 6 nouveaux services avec leurs règles et erreurs.
+- **Vérifié** : lint, 71 tests, build ; parcours complet joué dans un navigateur (téléphone) : inscription → paiement simulé → carte associée ; captures 390 et 820 px.
+- **Reste** : le vrai paiement des 1 000 F par la page du QR / Wave arrive en Phase 3 ; mode hors connexion complet en Phase 4.
+- **Hypothèses ajoutées** : A20 à A23.
