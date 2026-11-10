@@ -16,29 +16,11 @@ export interface Transition<S extends string> {
 
 export type TransitionTable<S extends string> = readonly Transition<S>[];
 
-/** Enrollment from the mockup — no manual validation (ASSUMPTION A2). */
+/**
+ * Member status. No manual validation and no pending state: the member is created ACTIVE by the
+ * agent once the 1 000 F are received and the card is handed over (client rule, 2026-11-09).
+ */
 export const ENROLLMENT_WORKFLOW: TransitionTable<EnrollmentStatus> = [
-  {
-    from: 'DRAFT',
-    to: 'PAYMENT_PENDING',
-    actor: 'SYSTEM',
-    reasonRequired: false,
-    label: 'Créer le compte',
-  },
-  {
-    from: 'PAYMENT_PENDING',
-    to: 'CARD_TO_ASSIGN',
-    actor: 'SYSTEM',
-    reasonRequired: false,
-    label: 'Paiement reçu',
-  },
-  {
-    from: 'CARD_TO_ASSIGN',
-    to: 'ACTIVE',
-    actor: 'card.assign',
-    reasonRequired: false,
-    label: 'Associer la carte',
-  },
   { from: 'ACTIVE', to: 'SUSPENDED', actor: 'SYSTEM', reasonRequired: true, label: 'Bloquer' },
   { from: 'SUSPENDED', to: 'ACTIVE', actor: 'SYSTEM', reasonRequired: false, label: 'Débloquer' },
 ];

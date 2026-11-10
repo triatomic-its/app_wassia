@@ -1,4 +1,3 @@
-import { DEFAULT_PAYMENT_TYPES } from '../core/config/payment-types.config';
 import {
   EnrollmentInput,
   formatPhone,
@@ -10,6 +9,7 @@ import {
   AgentToday,
   AppNotification,
   Card,
+  EnrollmentResult,
   Member,
   Payment,
   PaymentChannel,
@@ -21,10 +21,10 @@ import { MockData } from './seed/seed';
 
 /**
  * Server-side business rules of the fake back end, so the UI receives the same errors as with
- * the real server. Every function mutates `data` and must be called inside `MockDb.write()`.
+ * the real server. Every mutating function must be called inside `MockDb.write()`.
  */
 
-const CHANNEL_ACCOUNT: Record<PaymentChannel, string> = {
+export const CHANNEL_ACCOUNT: Record<PaymentChannel, string> = {
   CASH: '571',
   WAVE: '5215',
   ORANGE: '5216',
@@ -88,108 +88,8 @@ function nextAccountNumber(data: MockData): string {
   return `CPT-${String(max + 1).padStart(6, '0')}`;
 }
 
-/**
- * Agent enrollment (mockup): once all required information is present and the phone is not
- * already used, the account is created automatically and a payment SMS is sent.
- */
-export function createMember(
-  data: MockData,
-  agent: User,
-  input: Partial<EnrollmentInput>,
-  now: Date,
-): Member {
-  const errors = validateEnrollment(input);
-  if (hasErrors(errors)) {
-    throw fail(
-      422,
-      'ENROLLMENT_INCOMPLETE',
-      'Certaines informations manquent.',
-      Object.fromEntries(Object.entries(errors).map(([k, v]) => [k, [v!]])),
-    );
-  }
-  const existing = findByPhone(data, input.phone!);
-  if (existing) {
-    throw fail(409, 'PHONE_ALREADY_USED', 'Ce numéro est déjà enregistré pour un autre marchand.');
-  }
-  const at = now.toISOString();
-  const member: Member = {
-    id: newId('m'),
-    fullName: input.fullName!.trim(),
-    phone: formatPhone(input.phone!),
-    market: input.market!,
-    trade: input.trade!.trim(),
-    stall: input.stall?.trim() || undefined,
-    idNumber: input.idNumber!.trim(),
-    idDocUrl: input.idDocUrl,
-    photoUrl: input.photoUrl,
-    agentId: agent.id,
-    status: 'PAYMENT_PENDING',
-    accountNumber: nextAccountNumber(data),
-    savings: 0,
-    dailyTarget: 500,
-    createdAt: at,
-    updatedAt: at,
-  };
-  data.members.push(member);
-  const fee = membershipFee(data);
-  sendSms(
-    data,
-    'PAYMENT_LINK',
-    member.phone,
-    { Nom: member.fullName, Montant: String(fee), Lien: `wassia.ci/pay/${member.accountNumber}` },
-    now,
-  );
-  audit(data, agent, 'CREATE_ACCOUNT', 'Member', member.id, now);
-  return member;
-}
-
 export function membershipFee(data: MockData): number {
-  const type = data.paymentTypes.find((t) => t.code === 'MEMBERSHIP');
-  return type?.defaultAmount ?? DEFAULT_PAYMENT_TYPES[0].defaultAmount ?? 1000;
-}
-
-/** Records the 1 000 F membership payment: PAYMENT_PENDING → CARD_TO_ASSIGN, with its ledger entry. */
-export function confirmMembershipPayment(
-  data: MockData,
-  memberId: string,
-  channel: PaymentChannel,
-  now: Date,
-  externalRef?: string,
-): Payment {
-  const member = data.members.find((m) => m.id === memberId);
-  if (!member) throw fail(404, 'MEMBER_NOT_FOUND', 'Marchand introuvable.');
-  if (member.status !== 'PAYMENT_PENDING') {
-    throw fail(409, 'INVALID_STATUS', 'Ce marchand a déjà payé son adhésion.');
-  }
-  const type = data.paymentTypes.find((t) => t.code === 'MEMBERSHIP')!;
-  const payment: Payment = {
-    id: newId('p'),
-    memberId,
-    typeId: type.id,
-    amount: membershipFee(data),
-    channel,
-    status: 'CONFIRMED',
-    externalRef: externalRef ?? newId(channel === 'WAVE' ? 'WV' : 'ESP'),
-    agentId: channel === 'CASH' ? member.agentId : undefined,
-    createdAt: now.toISOString(),
-  };
-  data.payments.push(payment);
-  data.ledger.push({
-    id: newId('e'),
-    date: payment.createdAt,
-    journal: channel === 'CASH' ? 'CAISSE' : 'MOBILE',
-    label: `Adhésion ${member.fullName}`,
-    lines: [
-      { account: CHANNEL_ACCOUNT[channel], debit: payment.amount, credit: 0 },
-      { account: '7061', debit: 0, credit: payment.amount },
-    ],
-    createdBy: 'system',
-    sourcePaymentId: payment.id,
-  });
-  member.status = 'CARD_TO_ASSIGN';
-  member.updatedAt = payment.createdAt;
-  audit(data, null, 'MEMBERSHIP_PAID', 'Member', member.id, now);
-  return payment;
+  return data.paymentTypes.find((t) => t.code === 'MEMBERSHIP')?.defaultAmount ?? 1000;
 }
 
 export function findCard(
@@ -206,35 +106,90 @@ export function findCard(
   return data.cards.find((c) => c.printedNumber === normalized);
 }
 
-/** Agent associates a blank card after payment: card UNASSIGNED → ACTIVE, member CARD_TO_ASSIGN → ACTIVE. */
-export function assignCard(
+/**
+ * Registers a merchant (client rule, 2026-11-09): the agent has received the 1 000 F on the spot
+ * (cash, or Wave confirmed by the agent) and hands over a blank QR card. Everything is checked
+ * first; then the member, the payment, its ledger entry and the card are written together.
+ */
+export function enrollMember(
   data: MockData,
   agent: User,
-  memberId: string,
-  card: Card | undefined,
+  input: Partial<EnrollmentInput>,
   now: Date,
-): { member: Member; card: Card } {
-  const member = data.members.find((m) => m.id === memberId);
-  if (!member) throw fail(404, 'MEMBER_NOT_FOUND', 'Marchand introuvable.');
-  if (agent.role === 'AGENT' && member.agentId !== agent.id) {
-    throw fail(403, 'NOT_YOUR_MERCHANT', 'Ce marchand est suivi par un autre agent.');
+): EnrollmentResult {
+  const errors = validateEnrollment(input);
+  if (hasErrors(errors)) {
+    throw fail(
+      422,
+      'ENROLLMENT_INCOMPLETE',
+      'Certaines informations manquent.',
+      Object.fromEntries(
+        Object.entries(errors)
+          .filter(([, v]) => v)
+          .map(([k, v]) => [k, [v!]]),
+      ),
+    );
   }
-  if (member.status === 'PAYMENT_PENDING') {
-    throw fail(409, 'PAYMENT_MISSING', 'Le marchand n’a pas encore payé ses 1 000 F.');
+  if (findByPhone(data, input.phone!)) {
+    throw fail(409, 'PHONE_ALREADY_USED', 'Ce numéro est déjà enregistré pour un autre marchand.');
   }
-  if (member.status !== 'CARD_TO_ASSIGN') {
-    throw fail(409, 'INVALID_STATUS', 'Ce marchand a déjà une carte.');
-  }
+  const card = findCard(data, { qr: input.cardQrToken, number: input.cardNumber });
   if (!card) throw fail(404, 'CARD_NOT_FOUND', 'Carte inconnue. Vérifiez le numéro imprimé.');
   if (card.status !== 'UNASSIGNED') {
     throw fail(409, 'CARD_ALREADY_USED', 'Cette carte est déjà utilisée. Prenez une carte vierge.');
   }
+
   const at = now.toISOString();
+  const channel = input.paymentChannel!;
+  const member: Member = {
+    id: newId('m'),
+    fullName: input.fullName!.trim(),
+    phone: formatPhone(input.phone!),
+    market: input.market!,
+    trade: input.trade!.trim(),
+    stall: input.stall?.trim() || undefined,
+    idNumber: input.idNumber!.trim(),
+    idDocUrl: input.idDocUrl,
+    photoUrl: input.photoUrl,
+    agentId: agent.id,
+    status: 'ACTIVE',
+    accountNumber: nextAccountNumber(data),
+    cardId: card.id,
+    savings: 0,
+    dailyTarget: 500,
+    createdAt: at,
+    updatedAt: at,
+  };
+  const type = data.paymentTypes.find((t) => t.code === 'MEMBERSHIP')!;
+  const payment: Payment = {
+    id: newId('p'),
+    memberId: member.id,
+    typeId: type.id,
+    amount: membershipFee(data),
+    channel,
+    status: 'CONFIRMED',
+    externalRef: input.paymentRef?.trim() || newId(channel === 'WAVE' ? 'WV' : 'ESP'),
+    agentId: agent.id,
+    createdAt: at,
+  };
+
+  data.members.push(member);
+  data.payments.push(payment);
+  data.ledger.push({
+    id: newId('e'),
+    date: at,
+    journal: channel === 'CASH' ? 'CAISSE' : 'MOBILE',
+    label: `Adhésion ${member.fullName}`,
+    lines: [
+      { account: CHANNEL_ACCOUNT[channel], debit: payment.amount, credit: 0 },
+      { account: '7061', debit: 0, credit: payment.amount },
+    ],
+    createdBy: agent.id,
+    sourcePaymentId: payment.id,
+  });
   card.status = 'ACTIVE';
   card.memberId = member.id;
-  member.cardId = card.id;
-  member.status = 'ACTIVE';
-  member.updatedAt = at;
+
   sendSms(
     data,
     'ENROLLMENT',
@@ -242,8 +197,8 @@ export function assignCard(
     { Numéro: member.accountNumber ?? '', Téléphone: '+225 07 07 07 07 07' },
     now,
   );
-  audit(data, agent, 'ASSIGN_CARD', 'Card', card.id, now);
-  return { member, card };
+  audit(data, agent, 'ENROLL_MEMBER', 'Member', member.id, now);
+  return { member, card, payment };
 }
 
 /** Day summary for an agent's home screen. */
@@ -252,26 +207,24 @@ export function agentToday(data: MockData, agent: User, now: Date): AgentToday {
   const onDay = (iso: string) => iso.slice(0, 10) === day;
   const mine = data.members.filter((m) => m.agentId === agent.id);
   const mineIds = new Set(mine.map((m) => m.id));
-  const collectedPayments = data.payments.filter(
+  const collected = data.payments.filter(
     (p) => p.agentId === agent.id && p.status === 'CONFIRMED' && onDay(p.createdAt),
   );
-  const collected = collectedPayments.reduce((s, p) => s + p.amount, 0);
+  const cash = collected.filter((p) => p.channel === 'CASH').reduce((s, p) => s + p.amount, 0);
   const remitted = data.remittances
     .filter((r) => r.fromUserId === agent.id && r.status === 'RECEIVED' && r.at && onDay(r.at))
     .reduce((s, r) => s + r.amount, 0);
   return {
     businessDate: day,
     cutoffTime: data.settings.cashCutoffTime,
-    collected,
-    deposits: collectedPayments.length,
-    enrolled: mine.filter((m) => m.status !== 'DRAFT' && onDay(m.createdAt)).length,
-    toRemit: Math.max(collected - remitted, 0),
+    collected: collected.reduce((s, p) => s + p.amount, 0),
+    deposits: collected.length,
+    enrolled: mine.filter((m) => onDay(m.createdAt)).length,
+    toRemit: Math.max(cash - remitted, 0),
     lateMembers: new Set(
       data.loans
         .filter((l) => mineIds.has(l.memberId) && (l.status === 'LATE_1' || l.status === 'LATE_2'))
         .map((l) => l.memberId),
     ).size,
-    paymentPending: mine.filter((m) => m.status === 'PAYMENT_PENDING').length,
-    cardsToAssign: mine.filter((m) => m.status === 'CARD_TO_ASSIGN').length,
   };
 }

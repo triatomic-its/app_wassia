@@ -1,16 +1,10 @@
 import { Fcfa, IsoDateTime } from './common.model';
 
 /**
- * Enrollment lifecycle from the client mockup (ASSUMPTION A2):
- * no manual validation, the account is created automatically.
+ * Member status. Client rule (2026-11-09): a merchant is registered only after paying the
+ * 1 000 F on the spot and receiving a QR card, so there is no pending or draft state.
  */
 export type EnrollmentStatus =
-  /** Agent is still filling in the form (required info incomplete). */
-  | 'DRAFT'
-  /** Account created automatically, waiting for the 1 000 F membership payment. */
-  | 'PAYMENT_PENDING'
-  /** Paid, the agent must associate a QR card. */
-  | 'CARD_TO_ASSIGN'
   | 'ACTIVE'
   /** e.g. savings blocked after a second late loan repayment. */
   | 'SUSPENDED';

@@ -3,7 +3,7 @@ import { FR } from '../../core/i18n/fr';
 import { ROLES } from '../../core/models';
 import { EnrollmentInput } from '../../core/domain/enrollment';
 import { maskName } from '../../shared/pipes/mask-name.pipe';
-import { agentToday, assignCard, createMember, findByPhone, findCard } from '../domain';
+import { agentToday, enrollMember, findByPhone, findCard } from '../domain';
 import { MockContext, MockRoute, fail, matchesText, paginate } from '../http';
 import { MockData } from '../seed/seed';
 
@@ -29,7 +29,7 @@ const VIEW_MEMBERS = [
   'loan.view',
 ] as const;
 
-/** All mock endpoints (Phase 1: identity and read access to the seeded data). */
+/** All mock endpoints. */
 export const MOCK_ROUTES: readonly MockRoute[] = [
   {
     method: 'GET',
@@ -119,7 +119,7 @@ export const MOCK_ROUTES: readonly MockRoute[] = [
     status: 201,
     handler: (ctx) =>
       ctx.db.write((data) =>
-        createMember(data, ctx.user!, (ctx.body ?? {}) as Partial<EnrollmentInput>, ctx.now),
+        enrollMember(data, ctx.user!, (ctx.body ?? {}) as Partial<EnrollmentInput>, ctx.now),
       ),
   },
   {
@@ -143,23 +143,6 @@ export const MOCK_ROUTES: readonly MockRoute[] = [
       });
       if (!card) throw fail(404, 'CARD_NOT_FOUND', 'Carte inconnue. Vérifiez le numéro imprimé.');
       return { card: { id: card.id, printedNumber: card.printedNumber, status: card.status } };
-    },
-  },
-  {
-    method: 'POST',
-    pattern: '/cards/assign',
-    access: ['card.assign'],
-    handler: (ctx) => {
-      const body = (ctx.body ?? {}) as { memberId?: string; qrToken?: string; number?: string };
-      return ctx.db.write((data) =>
-        assignCard(
-          data,
-          ctx.user!,
-          body.memberId ?? '',
-          findCard(data, { qr: body.qrToken, number: body.number }),
-          ctx.now,
-        ),
-      );
     },
   },
   {

@@ -57,18 +57,13 @@ describe('permission matrix', () => {
 });
 
 describe('workflow tables', () => {
-  it('has no manual validation step in enrollment', () => {
-    const manual = ENROLLMENT_WORKFLOW.filter((t) => t.actor !== 'SYSTEM');
-    expect(manual.map((t) => `${t.from}->${t.to}`)).toEqual(['CARD_TO_ASSIGN->ACTIVE']);
-  });
-
-  it('only lets the agent associate the card', () => {
-    expect(
-      availableTransitions(ENROLLMENT_WORKFLOW, 'CARD_TO_ASSIGN', permissionsOf('AGENT')),
-    ).toHaveLength(1);
-    expect(
-      availableTransitions(ENROLLMENT_WORKFLOW, 'CARD_TO_ASSIGN', permissionsOf('MANAGER')),
-    ).toHaveLength(0);
+  it('has no manual validation and no pending state for members', () => {
+    // Members are created ACTIVE (paid on the spot, card handed over); only the system blocks them.
+    expect(ENROLLMENT_WORKFLOW.every((t) => t.actor === 'SYSTEM')).toBe(true);
+    expect(new Set(ENROLLMENT_WORKFLOW.flatMap((t) => [t.from, t.to]))).toEqual(
+      new Set(['ACTIVE', 'SUSPENDED']),
+    );
+    expect(availableTransitions(ENROLLMENT_WORKFLOW, 'ACTIVE', permissionsOf('DG'))).toEqual([]);
   });
 
   it('walks the 3-level closure with one role per level', () => {

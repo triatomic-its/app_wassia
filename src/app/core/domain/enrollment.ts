@@ -1,7 +1,14 @@
 /**
  * Enrollment rules shared by the screens and the (mock) server.
+ *
+ * Client rule (2026-11-09): the agent registers a merchant only once the 1 000 F membership fee
+ * has been received on the spot (cash, or Wave confirmed by the agent), and hands over the QR
+ * card at the same time. A registered member has therefore always paid and has a card.
+ *
  * Côte d'Ivoire mobile numbers: 10 digits, starting with 01, 05 or 07 (since 2021).
  */
+
+export type MembershipChannel = 'CASH' | 'WAVE';
 
 export interface EnrollmentInput {
   fullName: string;
@@ -14,9 +21,18 @@ export interface EnrollmentInput {
   idDocUrl?: string;
   /** Uploaded photo of the stall / business. */
   photoUrl?: string;
+  /** How the 1 000 F were paid. */
+  paymentChannel?: MembershipChannel;
+  /** The agent confirms having received the cash or seen the Wave confirmation. */
+  paymentConfirmed?: boolean;
+  /** Optional Wave transaction reference, for reconciliation. */
+  paymentRef?: string;
+  /** Blank card handed over: scanned QR token or printed number. */
+  cardQrToken?: string;
+  cardNumber?: string;
 }
 
-export type EnrollmentField = keyof EnrollmentInput;
+export type EnrollmentField = keyof EnrollmentInput | 'card';
 export type EnrollmentErrors = Partial<Record<EnrollmentField, string>>;
 
 /** Keeps digits only: `07 00 00 00 00` → `0700000000`. */
@@ -56,11 +72,37 @@ export function validateDocuments(input: Partial<EnrollmentInput>): EnrollmentEr
   return errors;
 }
 
-/** Everything required for the account to be created automatically. */
+/** Step 3 — the 1 000 F membership fee, received on the spot. */
+export function validatePayment(input: Partial<EnrollmentInput>): EnrollmentErrors {
+  const errors: EnrollmentErrors = {};
+  if (input.paymentChannel !== 'CASH' && input.paymentChannel !== 'WAVE') {
+    errors.paymentChannel = 'Choisissez : espèces ou Wave.';
+  } else if (input.paymentConfirmed !== true) {
+    errors.paymentConfirmed =
+      input.paymentChannel === 'CASH'
+        ? 'Confirmez que vous avez reçu les 1 000 F.'
+        : 'Confirmez que vous avez vu la confirmation du paiement Wave.';
+  }
+  return errors;
+}
+
+/** Step 4 — the blank card handed over. */
+export function validateCard(input: Partial<EnrollmentInput>): EnrollmentErrors {
+  return input.cardQrToken?.trim() || input.cardNumber?.trim()
+    ? {}
+    : { card: 'Scannez ou écrivez le numéro d’une carte vierge.' };
+}
+
+/** Everything required to register the member. */
 export function validateEnrollment(input: Partial<EnrollmentInput>): EnrollmentErrors {
-  return { ...validateIdentity(input), ...validateDocuments(input) };
+  return {
+    ...validateIdentity(input),
+    ...validateDocuments(input),
+    ...validatePayment(input),
+    ...validateCard(input),
+  };
 }
 
 export function hasErrors(errors: EnrollmentErrors): boolean {
-  return Object.keys(errors).length > 0;
+  return Object.values(errors).some(Boolean);
 }

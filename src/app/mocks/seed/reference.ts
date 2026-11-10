@@ -99,7 +99,7 @@ export const ACCOUNTS = [
   { code: '7062', label: 'Frais de dossier crédit' },
 ];
 
-/** Templates from CLAUDE.md §9 plus the mockup's payment link and late reminder. */
+/** Templates from CLAUDE.md §9 plus the mockup's late-repayment reminder. */
 export const SMS_TEMPLATES: SmsTemplate[] = [
   {
     id: 't-deposit',
@@ -114,13 +114,6 @@ export const SMS_TEMPLATES: SmsTemplate[] = [
     label: 'Compte actif',
     body: 'GROUPE WASSIA : Bienvenue ! Votre compte N° [Numéro] est actif. Votre carte QR est prête. Agence : [Téléphone].',
     variables: ['Numéro', 'Téléphone'],
-  },
-  {
-    id: 't-payment-link',
-    code: 'PAYMENT_LINK',
-    label: "Paiement de l'adhésion",
-    body: "GROUPE WASSIA : Bonjour [Nom], votre compte est créé. Payez l'adhésion de [Montant] FCFA ici : [Lien].",
-    variables: ['Nom', 'Montant', 'Lien'],
   },
   {
     id: 't-due',

@@ -12,7 +12,6 @@ import { ButtonDirective } from '../../shared/ui/button';
 import { InputDirective } from '../../shared/ui/field';
 import { FAULTS, FaultKind, MockControl } from '../control';
 import { MockDb } from '../db';
-import { confirmMembershipPayment } from '../domain';
 
 const LATENCIES = [
   { label: 'Aucune (0 ms)', min: 0, max: 0 },
@@ -176,27 +175,7 @@ const LATENCIES = [
         </section>
 
         <section class="flex flex-col gap-2">
-          <h3 class="font-bold">Paiement de l'adhésion</h3>
-          <p class="text-sm text-ink-muted">
-            En attendant la page de paiement (phase 3) : simuler le paiement Wave de 1 000 F d'un
-            compte créé.
-          </p>
-          @for (m of pendingMembers(); track m.id) {
-            <div class="flex items-center gap-2 text-sm">
-              <span class="min-w-0 flex-1 truncate">{{ m.fullName }}</span>
-              <button
-                appButton
-                variant="outline"
-                type="button"
-                class="min-h-10 px-3 text-sm"
-                (click)="pay(m.id)"
-              >
-                Payer
-              </button>
-            </div>
-          } @empty {
-            <p class="text-sm">Aucun compte en attente de paiement pour ce profil.</p>
-          }
+          <h3 class="font-bold">Cartes</h3>
           <p class="text-sm">
             Prochaine carte vierge : <b class="font-display text-primary">{{ nextFreeCard() }}</b>
           </p>
@@ -290,28 +269,10 @@ export class DevPanel {
     this.control.update({ fault: kind });
   }
 
-  /** Latest accounts waiting for their 1 000 F (the current agent's first). */
-  protected readonly pendingMembers = computed(() => {
-    this.db.revision();
-    const me = this.session.user();
-    return this.db.snapshot.members
-      .filter(
-        (m) => m.status === 'PAYMENT_PENDING' && (me?.role !== 'AGENT' || m.agentId === me.id),
-      )
-      .sort((a, b) => b.createdAt.localeCompare(a.createdAt))
-      .slice(0, 4);
-  });
-
   protected readonly nextFreeCard = computed(() => {
     this.db.revision();
     return this.db.snapshot.cards.find((c) => c.status === 'UNASSIGNED')?.printedNumber ?? '—';
   });
-
-  protected pay(memberId: string): void {
-    this.db.write((data) => confirmMembershipPayment(data, memberId, 'WAVE', this.clock.current()));
-    // Reload so every screen re-reads the data (the demo profile survives the reload).
-    location.reload();
-  }
 
   protected reset(): void {
     if (!confirm('Effacer toutes les données de démonstration et repartir des données de départ ?'))

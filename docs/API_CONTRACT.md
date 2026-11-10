@@ -81,11 +81,11 @@ Roles: `DG`, `DEPUTY_DG` (read-only), `BRANCH_MANAGER`, `MANAGER`, `ACCOUNTANT`,
 
 ### Reference data
 
-| Endpoint              | Response                                                                        | Access   |
-| --------------------- | ------------------------------------------------------------------------------- | -------- |
-| `GET /users?role=&q=` | `Page<User>` (default sort `fullName,asc`)                                      | any user |
-| `GET /settings`       | `{ cashCeiling, cashCutoffTime: "16:00", cashCountTime, paymentReminderHours }` | any user |
-| `GET /payment-types`  | `PaymentType[]` — `{ id, code, label, defaultAmount?, fixedAmount, active }`    | any user |
+| Endpoint              | Response                                                                     | Access   |
+| --------------------- | ---------------------------------------------------------------------------- | -------- |
+| `GET /users?role=&q=` | `Page<User>` (default sort `fullName,asc`)                                   | any user |
+| `GET /settings`       | `{ cashCeiling, cashCutoffTime: "16:00", cashCountTime: "16:30" }`           | any user |
+| `GET /payment-types`  | `PaymentType[]` — `{ id, code, label, defaultAmount?, fixedAmount, active }` | any user |
 
 ### Members, cards, payments, loans (read)
 
@@ -105,7 +105,7 @@ Model shapes: `src/app/core/models/*.model.ts`. Notes:
 
 ### Field agent — enrollment (Phase 2)
 
-Enrollment has **no manual validation**: as soon as the required information is complete and the phone is not already used, the account is created (`PAYMENT_PENDING`) and the merchant receives the payment SMS. Lifecycle: `PAYMENT_PENDING` → (1 000 F paid) → `CARD_TO_ASSIGN` → (agent associates a blank card) → `ACTIVE`.
+Client rule (2026-11-09): the agent registers a merchant **only once the 1 000 F membership fee has been received on the spot** — in cash, or by Wave with the agent confirming he saw the Wave confirmation — and **hands over a blank QR card at the same time**. There is no pending state and no manual validation: a registered member has always paid and holds a card (`status: ACTIVE`). If the merchant does not pay, nothing is sent to the server.
 
 #### `GET /agent/today` — access: collect.field
 
@@ -117,13 +117,11 @@ Enrollment has **no manual validation**: as soon as the required information is 
   "deposits": 37,
   "enrolled": 3,
   "toRemit": 48500,
-  "lateMembers": 2,
-  "paymentPending": 4,
-  "cardsToAssign": 1
+  "lateMembers": 2
 }
 ```
 
-`collected`/`deposits`: the agent's confirmed collections of the business day; `toRemit`: cash collected minus remittances received by the cashier; `lateMembers`: own merchants with a loan in `LATE_1`/`LATE_2`.
+`collected`/`deposits`: the agent's confirmed payments of the business day (savings and membership fees); `toRemit`: **cash** collected (including membership fees paid in cash) minus remittances received by the cashier; `lateMembers`: own merchants with a loan in `LATE_1`/`LATE_2`.
 
 #### `GET /members/phone-check?phone=0700000000` — access: member.enroll
 
@@ -133,7 +131,13 @@ Enrollment has **no manual validation**: as soon as the required information is 
 
 Multipart `file`. Response `201 { "url": "…" }` — the reference to send in `idDocUrl` / `photoUrl`.
 
+#### `GET /cards/lookup?qr=<token>` or `?number=WAS-000124` — access: card.assign, cards.manage
+
+`{ "card": { "id", "printedNumber", "status" } }`; `number` also accepts the short form (`124`). 404 `CARD_NOT_FOUND`. Used by the agent to check the card is blank (`UNASSIGNED`) before registering.
+
 #### `POST /members` — access: member.enroll
+
+Registers the merchant, the 1 000 F payment and the card **in one atomic operation** (all or nothing).
 
 ```json
 {
@@ -144,33 +148,48 @@ Multipart `file`. Response `201 { "url": "…" }` — the reference to send in `
   "idNumber": "CI 1234 5678",
   "stall": "Allée B, étal 12",
   "idDocUrl": "…",
-  "photoUrl": "…"
+  "photoUrl": "…",
+  "paymentChannel": "CASH",
+  "paymentConfirmed": true,
+  "paymentRef": "TX-998877",
+  "cardNumber": "WAS-000124"
 }
 ```
 
-`201` → the created `Member` (`status: PAYMENT_PENDING`, `accountNumber: CPT-000121`, `agentId` = caller). Side effects: SMS `PAYMENT_LINK`, audit `CREATE_ACCOUNT`.
+- `paymentChannel`: `CASH` or `WAVE`; `paymentConfirmed` must be `true` (the agent received the cash / saw the Wave confirmation); `paymentRef`: optional Wave transaction reference, used later in reconciliation with the Wave statement.
+- Card: `cardQrToken` (scanned) **or** `cardNumber` (typed, `WAS-000124` or `124`).
 
-| Error | Code                    | When                                                                                                                            |
-| ----- | ----------------------- | ------------------------------------------------------------------------------------------------------------------------------- |
-| 422   | `ENROLLMENT_INCOMPLETE` | missing/invalid field — `details` lists the fields (`fullName`, `phone`, `market`, `trade`, `idNumber`, `idDocUrl`, `photoUrl`) |
-| 409   | `PHONE_ALREADY_USED`    | the phone belongs to another merchant                                                                                           |
+`201` →
+
+```json
+{
+  "member": {
+    "status": "ACTIVE",
+    "accountNumber": "CPT-000121",
+    "cardId": "…",
+    "agentId": "u-ag1",
+    "…": "…"
+  },
+  "card": { "printedNumber": "WAS-000124", "status": "ACTIVE", "memberId": "…" },
+  "payment": {
+    "amount": 1000,
+    "channel": "CASH",
+    "status": "CONFIRMED",
+    "agentId": "u-ag1",
+    "…": "…"
+  }
+}
+```
+
+Side effects: ledger entry (debit `571` Caisse or `5215` Wave / credit `7061` Frais d'adhésion), SMS `ENROLLMENT` (« compte actif, carte prête »), audit `ENROLL_MEMBER`. The amount comes from the `MEMBERSHIP` payment type (1 000 F by default, editable in admin). A cash fee is part of what the agent hands to the cashier.
+
+| Error | Code                    | When                                                                                                                                                                    |
+| ----- | ----------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 422   | `ENROLLMENT_INCOMPLETE` | missing/invalid field — `details` lists them (`fullName`, `phone`, `market`, `trade`, `idNumber`, `idDocUrl`, `photoUrl`, `paymentChannel`, `paymentConfirmed`, `card`) |
+| 409   | `PHONE_ALREADY_USED`    | the phone belongs to another merchant                                                                                                                                   |
+| 404   | `CARD_NOT_FOUND`        | unknown card                                                                                                                                                            |
+| 409   | `CARD_ALREADY_USED`     | the card is not blank                                                                                                                                                   |
 
 Phone: 10 digits starting with 01, 05 or 07 (`+225` prefix accepted), stored as `07 12 34 56 78`.
-
-#### `GET /cards/lookup?qr=<token>` or `?number=WAS-000124` — access: card.assign, cards.manage
-
-`{ "card": { "id", "printedNumber", "status" } }`; `number` also accepts the short form (`124`). 404 `CARD_NOT_FOUND`.
-
-#### `POST /cards/assign` — access: card.assign
-
-Body `{ "memberId": "…", "qrToken": "…" }` or `{ "memberId": "…", "number": "WAS-000124" }` → `200 { member, card }` with both `ACTIVE`. Side effects: SMS `ENROLLMENT`, audit `ASSIGN_CARD`.
-
-| Error | Code                                  | When                                  |
-| ----- | ------------------------------------- | ------------------------------------- |
-| 403   | `NOT_YOUR_MERCHANT`                   | the merchant belongs to another agent |
-| 404   | `MEMBER_NOT_FOUND` / `CARD_NOT_FOUND` | unknown merchant / card               |
-| 409   | `PAYMENT_MISSING`                     | the 1 000 F have not been paid yet    |
-| 409   | `INVALID_STATUS`                      | the merchant already has a card       |
-| 409   | `CARD_ALREADY_USED`                   | the card is not blank                 |
 
 Other write endpoints (payment page, collection, cash closure, loans…) are added in the following phases.

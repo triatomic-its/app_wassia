@@ -30,7 +30,8 @@ import {
 import { Rng } from '../rng';
 import { ACCOUNTS, FIRST_NAMES, LAST_NAMES, SMS_TEMPLATES, TRADES } from './reference';
 
-export const MOCK_DATA_VERSION = 1;
+/** Bump when the data shape or business rules change: old browser data is discarded. */
+export const MOCK_DATA_VERSION = 2;
 export const DEFAULT_SEED = 20261109;
 
 export interface MockData {
@@ -136,13 +137,8 @@ export function seedMockData(now: Date, seed = DEFAULT_SEED): MockData {
   ];
 
   // ---- Members ------------------------------------------------------------
-  const statusFor = (i: number): EnrollmentStatus => {
-    if (i < 6) return 'DRAFT';
-    if (i < 16) return 'PAYMENT_PENDING';
-    if (i < 20) return 'CARD_TO_ASSIGN';
-    if (i === 119) return 'SUSPENDED';
-    return 'ACTIVE';
-  };
+  // Every member has paid the 1 000 F on the spot and holds a card (client rule, 2026-11-09).
+  const statusFor = (i: number): EnrollmentStatus => (i === 119 ? 'SUSPENDED' : 'ACTIVE');
 
   const usedNames = new Set<string>();
   const members: Member[] = [];
@@ -155,15 +151,8 @@ export function seedMockData(now: Date, seed = DEFAULT_SEED): MockData {
 
     const agent = AGENTS[i % AGENTS.length];
     const status = statusFor(i);
-    const ageMs =
-      status === 'DRAFT'
-        ? rng.int(1, 20) * HOUR
-        : status === 'PAYMENT_PENDING'
-          ? // half of them waiting more than 24 h (reminder advised)
-            (i % 2 === 0 ? rng.int(26, 60) : rng.int(2, 20)) * HOUR
-          : status === 'CARD_TO_ASSIGN'
-            ? rng.int(5, 30) * HOUR
-            : rng.int(7, 56) * DAY;
+    // A few enrollments in the last two days, the rest over eight weeks.
+    const ageMs = i < 6 ? rng.int(2, 40) * HOUR : rng.int(7, 56) * DAY;
     const createdMs = nowMs - ageMs;
     members.push({
       id: `m-${String(i + 1).padStart(3, '0')}`,
@@ -176,7 +165,7 @@ export function seedMockData(now: Date, seed = DEFAULT_SEED): MockData {
       status,
       statusReason:
         status === 'SUSPENDED' ? 'Épargne bloquée après le deuxième retard de crédit.' : undefined,
-      accountNumber: status === 'DRAFT' ? undefined : `CPT-${String(i + 1).padStart(6, '0')}`,
+      accountNumber: `CPT-${String(i + 1).padStart(6, '0')}`,
       savings: 0,
       dailyTarget: rng.pick([500, 500, 1000, 1000, 2000]),
       createdAt: iso(createdMs),
@@ -196,7 +185,7 @@ export function seedMockData(now: Date, seed = DEFAULT_SEED): MockData {
   }
   let nextCard = 0;
   for (const m of members) {
-    if (m.status === 'ACTIVE' || m.status === 'SUSPENDED') {
+    {
       const card = cards[nextCard++];
       card.status = 'ACTIVE';
       card.memberId = m.id;
@@ -225,7 +214,6 @@ export function seedMockData(now: Date, seed = DEFAULT_SEED): MockData {
   };
 
   for (const m of members) {
-    if (m.status === 'DRAFT' || m.status === 'PAYMENT_PENDING') continue;
     const created = Date.parse(m.createdAt);
     const channel: PaymentChannel = rng.chance(0.5) ? 'WAVE' : 'CASH';
     addPayment({
@@ -234,10 +222,10 @@ export function seedMockData(now: Date, seed = DEFAULT_SEED): MockData {
       amount: membershipType.defaultAmount!,
       channel,
       status: 'CONFIRMED',
-      agentId: channel === 'CASH' ? m.agentId : undefined,
-      createdAt: iso(Math.min(created + rng.int(1, 4) * HOUR, nowMs - HOUR)),
+      // Paid to the agent at enrollment (cash, or Wave confirmed by the agent).
+      agentId: m.agentId,
+      createdAt: m.createdAt,
     });
-    if (m.status === 'CARD_TO_ASSIGN') continue;
 
     const deposits = rng.int(2, 7);
     for (let k = 0; k < deposits; k++) {

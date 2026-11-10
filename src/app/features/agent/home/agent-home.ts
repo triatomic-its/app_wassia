@@ -4,7 +4,6 @@ import { RouterLink } from '@angular/router';
 import { NgIcon, provideIcons } from '@ng-icons/core';
 import {
   lucideChevronRight,
-  lucideCreditCard,
   lucideRoute,
   lucideScanLine,
   lucideTriangleAlert,
@@ -35,7 +34,6 @@ const toMinutes = (hhmm: string) => {
       lucideRoute,
       lucideTriangleAlert,
       lucideChevronRight,
-      lucideCreditCard,
     }),
   ],
   host: { class: 'flex flex-col gap-3.5' },
@@ -116,21 +114,6 @@ const toMinutes = (hhmm: string) => {
         </a>
       </div>
 
-      @if (day.cardsToAssign > 0) {
-        <a
-          routerLink="/agent/inscriptions"
-          class="flex min-h-14 items-center gap-3 rounded-control bg-info-soft p-3.5 text-sm font-semibold text-info"
-        >
-          <ng-icon name="lucideCreditCard" size="22" aria-hidden="true" />
-          <span class="flex-1">
-            {{ day.cardsToAssign }}
-            {{ day.cardsToAssign > 1 ? 'cartes à associer' : 'carte à associer' }} (adhésion payée)
-          </span>
-          <span class="flex items-center"
-            >Voir<ng-icon name="lucideChevronRight" size="18" aria-hidden="true"
-          /></span>
-        </a>
-      }
       @if (day.lateMembers > 0) {
         <a
           routerLink="/agent/collecte"
@@ -160,10 +143,9 @@ const toMinutes = (hhmm: string) => {
           routerLink="/agent/inscriptions"
           class="flex min-h-12 items-center justify-between gap-2.5 rounded-control border border-border bg-surface p-3.5 text-sm hover:border-primary"
         >
-          <span class="text-ink-muted">Inscriptions en attente de paiement</span>
-          <span class="flex items-center font-display text-base font-bold text-primary">
-            {{ day.paymentPending
-            }}<ng-icon name="lucideChevronRight" size="18" aria-hidden="true" />
+          <span class="text-ink-muted">Mes inscriptions</span>
+          <span class="flex items-center font-semibold text-primary">
+            Voir<ng-icon name="lucideChevronRight" size="18" aria-hidden="true" />
           </span>
         </a>
       </div>

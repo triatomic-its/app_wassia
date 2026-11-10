@@ -27,9 +27,10 @@
 - **Reste** : flux Keycloak réel (A18) ; les écrans métier arrivent à partir de la Phase 2.
 - **Hypothèses ajoutées** : A18, A19.
 
-## Phase 2 — Agent : inscription (2026-11-09)
+## Phase 2 — Agent : inscription (2026-11-09, corrigée le 2026-11-10)
 
-- **Fait** : accueil du jour de l'agent (compte à rebours 16 h 00, collecte, versements, inscrits, cartes à associer, retards, à remettre) ; inscription en 3 étapes (identité avec contrôle du doublon de téléphone, photos CNI + commerce, vérification) avec brouillon gardé sur l'appareil ; compte créé automatiquement + SMS ; « Mes inscriptions » ; association d'une carte vierge (scan QR si le téléphone le permet, sinon numéro imprimé) ; titre et flèche retour dans la barre de l'agent ; panneau Démo : simuler le paiement de 1 000 F et prochaine carte vierge. Faux serveur : 6 nouveaux services avec leurs règles et erreurs.
-- **Vérifié** : lint, 71 tests, build ; parcours complet joué dans un navigateur (téléphone) : inscription → paiement simulé → carte associée ; captures 390 et 820 px.
-- **Reste** : le vrai paiement des 1 000 F par la page du QR / Wave arrive en Phase 3 ; mode hors connexion complet en Phase 4.
-- **Hypothèses ajoutées** : A20 à A23.
+- **Fait** : accueil du jour de l'agent (compte à rebours 16 h 00, collecte, versements, inscrits, retards, à remettre) ; inscription en 4 étapes : identité (contrôle du doublon de téléphone) → pièces et commerce (photos CNI + étalage) → **paiement des 1 000 F sur place** (espèces ou Wave confirmé par l'agent) → **carte remise** (scan QR ou numéro imprimé) et enregistrement ; « Mes inscriptions ».
+- **Correction du 10/11 (règle client)** : le membre n'existe qu'une fois payé et équipé de sa carte. Supprimés : statuts « paiement en attente » / « carte à associer », SMS de paiement, brouillon sur l'appareil, écran d'association séparé, bouton « Payer » du panneau Démo. Le faux serveur enregistre membre + paiement + écriture comptable + carte en une seule opération. Données de démo régénérées (version 2).
+- **Vérifié** : lint, 77 tests, build ; parcours joués dans un navigateur (téléphone), en espèces et par Wave ; les 1 000 F en espèces s'ajoutent au montant à remettre à la caissière.
+- **Reste** : mode hors connexion complet en Phase 4 ; la page du QR publique (Phase 3) sert désormais aux versements d'épargne, plus à l'adhésion.
+- **Hypothèses** : A20, A21, A23, A24 ajoutées ; A2 et A22 confirmées ; A14 sans objet.

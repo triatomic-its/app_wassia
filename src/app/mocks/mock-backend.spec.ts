@@ -13,7 +13,7 @@ import { SessionStore } from '../core/auth/session.store';
 import { Member, Page } from '../core/models';
 import { provideRouter } from '@angular/router';
 import { MockControl } from './control';
-import { MockDb } from './db';
+import { DB_KEY, MockDb } from './db';
 import { matchRoute, paginate } from './http';
 import { MOCK_ROUTES } from './handlers';
 import { mockBackendInterceptor } from './mock-backend.interceptor';
@@ -128,9 +128,9 @@ describe('mock back end', () => {
     const { http, auth, db } = setup();
     await auth.login({ role: 'DG' });
     const pending = await firstValueFrom(
-      http.get<Page<Member>>('/api/v1/members', { params: { status: 'PAYMENT_PENDING' } }),
+      http.get<Page<Member>>('/api/v1/members', { params: { status: 'SUSPENDED' } }),
     );
-    expect(pending.total).toBe(10);
+    expect(pending.total).toBe(1);
     const name = db.snapshot.members[30].fullName;
     const found = await firstValueFrom(
       http.get<Page<Member>>('/api/v1/members', { params: { q: name.toUpperCase() } }),
@@ -183,9 +183,7 @@ describe('mock back end', () => {
   it('persists the database and re-seeds on reset', () => {
     const { db } = setup();
     db.write((d) => (d.settings.cashCeiling = 1_500_000));
-    expect(JSON.parse(localStorage.getItem('wassia.mock.db.v1')!).settings.cashCeiling).toBe(
-      1_500_000,
-    );
+    expect(JSON.parse(localStorage.getItem(DB_KEY)!).settings.cashCeiling).toBe(1_500_000);
     db.reset();
     expect(db.snapshot.settings.cashCeiling).toBe(2_000_000);
   });

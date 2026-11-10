@@ -1,5 +1,6 @@
 import { Fcfa, IsoDate } from './common.model';
 import { Card, Member } from './member.model';
+import { Payment } from './payment.model';
 
 /** `GET /agent/today` — the agent's home screen. */
 export interface AgentToday {
@@ -13,8 +14,6 @@ export interface AgentToday {
   toRemit: Fcfa;
   /** Own merchants with a late loan instalment. */
   lateMembers: number;
-  paymentPending: number;
-  cardsToAssign: number;
 }
 
 /** `GET /members/phone-check?phone=` */
@@ -29,8 +28,9 @@ export interface CardLookup {
   card: Pick<Card, 'id' | 'printedNumber' | 'status'>;
 }
 
-/** `POST /cards/assign` response. */
-export interface CardAssignResult {
+/** `POST /members` response: the member is registered, paid and holds an active card. */
+export interface EnrollmentResult {
   member: Member;
   card: Card;
+  payment: Payment;
 }

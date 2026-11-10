@@ -27,12 +27,6 @@ export default [
     canMatch: [permissionGuard('member.enroll')],
     loadComponent: () => import('./enroll/enroll-done').then((m) => m.EnrollDone),
   },
-  {
-    path: 'inscriptions/:id/carte',
-    title: 'Associer la carte — WASSIA',
-    canMatch: [permissionGuard('card.assign')],
-    loadComponent: () => import('./enroll/assign-card').then((m) => m.AssignCard),
-  },
   comingSoonRoute('collecte', 'Tournée de collecte', 'Phase 4'),
   comingSoonRoute('scanner', 'Scanner et encaisser', 'Phase 4'),
   comingSoonRoute('credit', 'Demande de crédit', 'Phase 7'),

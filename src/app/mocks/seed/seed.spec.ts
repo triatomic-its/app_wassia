@@ -17,14 +17,19 @@ describe('seedMockData', () => {
     expect(data.users.filter((u) => u.role === 'AGENT')).toHaveLength(6);
   });
 
-  it('spreads 120 members over 3 markets and every enrollment status', () => {
+  it('spreads 120 members over 3 markets, all paid and holding a card', () => {
     expect(data.members).toHaveLength(120);
     expect(new Set(data.members.map((m) => m.market))).toEqual(
       new Set(['Adjamé', 'Marcory', 'Yopougon']),
     );
-    const statuses = new Set(data.members.map((m) => m.status));
-    for (const s of ['DRAFT', 'PAYMENT_PENDING', 'CARD_TO_ASSIGN', 'ACTIVE', 'SUSPENDED']) {
-      expect(statuses.has(s as never)).toBe(true);
+    expect(new Set(data.members.map((m) => m.status))).toEqual(new Set(['ACTIVE', 'SUSPENDED']));
+    for (const m of data.members) {
+      expect(m.cardId).toBeTruthy();
+      const membership = data.payments.filter(
+        (p) => p.memberId === m.id && p.typeId === 'pt-membership',
+      );
+      expect(membership).toHaveLength(1);
+      expect(membership[0].createdAt).toBe(m.createdAt);
     }
   });
 
