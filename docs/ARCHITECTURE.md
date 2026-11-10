@@ -37,19 +37,20 @@ ESLint forbids importing `mocks/` from anywhere except `mocks/` and `app.config.
 
 ## Dependencies
 
-| Package                                                   | Why                                                                | Size impact                |
-| --------------------------------------------------------- | ------------------------------------------------------------------ | -------------------------- |
-| `tailwindcss` 4, `@tailwindcss/postcss`, `tw-animate-css` | Styling, tokens in `@theme` (`src/styles.css`)                     | build-time; ~27 kB CSS     |
-| `@angular/cdk`                                            | Dialog, focus trap, overlay                                        | only what is imported      |
-| `@spartan-ng/brain`                                       | Accessible unstyled primitives (installed, used from later phases) | not bundled until imported |
-| `class-variance-authority`, `clsx`, `tailwind-merge`      | Component variants                                                 | ~10 kB                     |
-| `@ng-icons/core`, `@ng-icons/lucide`                      | Icons (`lucide-angular` does not support Angular 22)               | per icon, tree-shaken      |
-| `ngx-sonner`                                              | Toasts with `aria-live`                                            | ~15 kB                     |
-| `date-fns`                                                | Date maths (16:00 cut-off, J+1)                                    | tree-shaken                |
-| `@fontsource/poppins`, `@fontsource/open-sans`            | Self-hosted fonts (offline PWA, strict CSP)                        | latin subsets only         |
-| `@angular/service-worker`                                 | PWA install + offline shell                                        | —                          |
-| `angular-eslint`, `husky`, `lint-staged`, `prettier`      | Quality gate on commit                                             | dev only                   |
-| `@playwright/test`                                        | E2E and responsive screenshots                                     | dev only                   |
+| Package                                                   | Why                                                                             | Size impact                                             |
+| --------------------------------------------------------- | ------------------------------------------------------------------------------- | ------------------------------------------------------- |
+| `tailwindcss` 4, `@tailwindcss/postcss`, `tw-animate-css` | Styling, tokens in `@theme` (`src/styles.css`)                                  | build-time; ~27 kB CSS                                  |
+| `@angular/cdk`                                            | Dialog, focus trap, overlay                                                     | only what is imported                                   |
+| `@spartan-ng/brain`                                       | Accessible unstyled primitives (installed, used from later phases)              | not bundled until imported                              |
+| `class-variance-authority`, `clsx`, `tailwind-merge`      | Component variants                                                              | ~10 kB                                                  |
+| `@ng-icons/core`, `@ng-icons/lucide`                      | Icons (`lucide-angular` does not support Angular 22)                            | per icon, tree-shaken                                   |
+| `ngx-sonner`                                              | Toasts with `aria-live`                                                         | ~15 kB                                                  |
+| `date-fns`                                                | Date maths (16:00 cut-off, J+1)                                                 | tree-shaken                                             |
+| `@fontsource/poppins`, `@fontsource/open-sans`            | Self-hosted fonts (offline PWA, strict CSP)                                     | latin subsets only                                      |
+| `@angular/service-worker`                                 | PWA install + offline shell                                                     | —                                                       |
+| `angular-eslint`, `husky`, `lint-staged`, `prettier`      | Quality gate on commit                                                          | dev only                                                |
+| `@playwright/test`                                        | E2E and responsive screenshots                                                  | dev only                                                |
+| `jsqr`                                                    | Lecture du QR des cartes quand le navigateur n'a pas de lecteur natif (iPhone…) | ~130 kB brut, chargé seulement à l'ouverture du scanner |
 
 Initial bundle after Phase 0: **365 kB raw / 95 kB transferred** (budget 600 kB warning, 1 MB error).
 

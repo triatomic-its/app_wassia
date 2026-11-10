@@ -12,6 +12,7 @@ export const API = {
   agentToday: '/agent/today',
   cards: '/cards',
   cardLookup: '/cards/lookup',
+  cardAssign: '/cards/assign',
   payments: '/payments',
   loans: '/loans',
 } as const;

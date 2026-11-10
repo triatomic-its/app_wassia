@@ -7,6 +7,7 @@ import { EnrollmentInput, phoneDigits } from '../../../core/domain/enrollment';
 import {
   AgentToday,
   Card,
+  CardAssignResult,
   CardLookup,
   EnrollmentResult,
   Loan,
@@ -51,7 +52,7 @@ export class AgentApi {
     return this.api.post<{ url: string }>(API.uploads, body).pipe(map((r) => r.url));
   }
 
-  /** Registers a merchant who has paid the 1 000 F and receives a card. */
+  /** Registers a merchant who has paid the 1 000 F (the card is associated next). */
   enroll(input: EnrollmentInput): Observable<EnrollmentResult> {
     return this.api.post<EnrollmentResult>(API.members, input);
   }
@@ -65,10 +66,21 @@ export class AgentApi {
     return this.api.get<MemberDetail>(API.member(id));
   }
 
-  lookupCard(by: { qr?: string; number?: string }): Observable<CardLookup> {
-    return this.api.get<CardLookup>(
-      API.cardLookup,
-      by.qr ? { qr: by.qr } : { number: by.number ?? '' },
+  /** Checks a scanned QR code: is it a blank WASSIA card? */
+  lookupCard(qrToken: string): Observable<CardLookup> {
+    return this.api.get<CardLookup>(API.cardLookup, { qr: qrToken });
+  }
+
+  /** Associates the scanned card with a registered member, who becomes active. */
+  assignCard(memberId: string, qrToken: string): Observable<CardAssignResult> {
+    return this.api.post<CardAssignResult>(API.cardAssign, { memberId, qrToken });
+  }
+
+  /** Own merchants registered (paid) who still have no card. */
+  cardsToAssign(): Observable<Page<Member>> {
+    return this.api.get<Page<Member>>(
+      API.members,
+      toPageParams({ size: 50, sort: 'createdAt,desc' }, { status: 'CARD_TO_ASSIGN' }),
     );
   }
 }

@@ -17,14 +17,16 @@ describe('seedMockData', () => {
     expect(data.users.filter((u) => u.role === 'AGENT')).toHaveLength(6);
   });
 
-  it('spreads 120 members over 3 markets, all paid and holding a card', () => {
+  it('spreads 120 members over 3 markets, all paid; a few still waiting for their card', () => {
     expect(data.members).toHaveLength(120);
     expect(new Set(data.members.map((m) => m.market))).toEqual(
       new Set(['Adjamé', 'Marcory', 'Yopougon']),
     );
-    expect(new Set(data.members.map((m) => m.status))).toEqual(new Set(['ACTIVE', 'SUSPENDED']));
+    expect(new Set(data.members.map((m) => m.status))).toEqual(
+      new Set(['CARD_TO_ASSIGN', 'ACTIVE', 'SUSPENDED']),
+    );
     for (const m of data.members) {
-      expect(m.cardId).toBeTruthy();
+      expect(!!m.cardId).toBe(m.status !== 'CARD_TO_ASSIGN');
       const membership = data.payments.filter(
         (p) => p.memberId === m.id && p.typeId === 'pt-membership',
       );
@@ -37,7 +39,7 @@ describe('seedMockData', () => {
     expect(data.cards).toHaveLength(1000);
     expect(data.cards[0].printedNumber).toBe('WAS-000001');
     expect(data.cards[999].printedNumber).toBe('WAS-001000');
-    for (const m of data.members.filter((x) => x.status === 'ACTIVE')) {
+    for (const m of data.members.filter((x) => x.status !== 'CARD_TO_ASSIGN')) {
       const card = data.cards.find((c) => c.id === m.cardId);
       expect(card?.status).toBe('ACTIVE');
       expect(card?.memberId).toBe(m.id);

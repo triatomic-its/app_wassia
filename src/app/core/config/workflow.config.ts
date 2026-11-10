@@ -17,10 +17,18 @@ export interface Transition<S extends string> {
 export type TransitionTable<S extends string> = readonly Transition<S>[];
 
 /**
- * Member status. No manual validation and no pending state: the member is created ACTIVE by the
- * agent once the 1 000 F are received and the card is handed over (client rule, 2026-11-09).
+ * Member status (client rule, 2026-11-10). No manual validation: the member is created
+ * CARD_TO_ASSIGN by the agent once the 1 000 F are received, then becomes ACTIVE when the agent
+ * scans the QR code of a blank card.
  */
 export const ENROLLMENT_WORKFLOW: TransitionTable<EnrollmentStatus> = [
+  {
+    from: 'CARD_TO_ASSIGN',
+    to: 'ACTIVE',
+    actor: 'card.assign',
+    reasonRequired: false,
+    label: 'Associer la carte',
+  },
   { from: 'ACTIVE', to: 'SUSPENDED', actor: 'SYSTEM', reasonRequired: true, label: 'Bloquer' },
   { from: 'SUSPENDED', to: 'ACTIVE', actor: 'SYSTEM', reasonRequired: false, label: 'Débloquer' },
 ];

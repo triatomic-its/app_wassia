@@ -14,6 +14,8 @@ export interface AgentToday {
   toRemit: Fcfa;
   /** Own merchants with a late loan instalment. */
   lateMembers: number;
+  /** Own merchants registered (paid) who still have no card. */
+  cardsToAssign: number;
 }
 
 /** `GET /members/phone-check?phone=` */
@@ -28,9 +30,14 @@ export interface CardLookup {
   card: Pick<Card, 'id' | 'printedNumber' | 'status'>;
 }
 
-/** `POST /members` response: the member is registered, paid and holds an active card. */
+/** POST /members response: the merchant is registered and has paid; the card comes next. */
 export interface EnrollmentResult {
   member: Member;
-  card: Card;
   payment: Payment;
+}
+
+/** POST /cards/assign response: the scanned card is associated, the member is active. */
+export interface CardAssignResult {
+  member: Member;
+  card: Card;
 }

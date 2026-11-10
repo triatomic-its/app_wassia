@@ -1,10 +1,12 @@
 import { Fcfa, IsoDateTime } from './common.model';
 
 /**
- * Member status. Client rule (2026-11-09): a merchant is registered only after paying the
- * 1 000 F on the spot and receiving a QR card, so there is no pending or draft state.
+ * Member status. Client rule (2026-11-10): the merchant is registered once the 1 000 F are paid on
+ * the spot, then the agent associates a card by scanning its QR code.
  */
 export type EnrollmentStatus =
+  /** Paid and registered; the agent still has to scan a blank card. */
+  | 'CARD_TO_ASSIGN'
   | 'ACTIVE'
   /** e.g. savings blocked after a second late loan repayment. */
   | 'SUSPENDED';

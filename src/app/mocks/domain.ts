@@ -9,6 +9,7 @@ import {
   AgentToday,
   AppNotification,
   Card,
+  CardAssignResult,
   EnrollmentResult,
   Member,
   Payment,
@@ -107,9 +108,9 @@ export function findCard(
 }
 
 /**
- * Registers a merchant (client rule, 2026-11-09): the agent has received the 1 000 F on the spot
- * (cash, or Wave confirmed by the agent) and hands over a blank QR card. Everything is checked
- * first; then the member, the payment, its ledger entry and the card are written together.
+ * Registers a merchant (client rule, 2026-11-10): the agent has received the 1 000 F on the spot
+ * (cash, or Wave confirmed by the agent). The member, the payment and its ledger entry are written
+ * together; the member is CARD_TO_ASSIGN until the agent scans a blank card (assignCard).
  */
 export function enrollMember(
   data: MockData,
@@ -133,12 +134,6 @@ export function enrollMember(
   if (findByPhone(data, input.phone!)) {
     throw fail(409, 'PHONE_ALREADY_USED', 'Ce numéro est déjà enregistré pour un autre marchand.');
   }
-  const card = findCard(data, { qr: input.cardQrToken, number: input.cardNumber });
-  if (!card) throw fail(404, 'CARD_NOT_FOUND', 'Carte inconnue. Vérifiez le numéro imprimé.');
-  if (card.status !== 'UNASSIGNED') {
-    throw fail(409, 'CARD_ALREADY_USED', 'Cette carte est déjà utilisée. Prenez une carte vierge.');
-  }
-
   const at = now.toISOString();
   const channel = input.paymentChannel!;
   const member: Member = {
@@ -152,9 +147,8 @@ export function enrollMember(
     idDocUrl: input.idDocUrl,
     photoUrl: input.photoUrl,
     agentId: agent.id,
-    status: 'ACTIVE',
+    status: 'CARD_TO_ASSIGN',
     accountNumber: nextAccountNumber(data),
-    cardId: card.id,
     savings: 0,
     dailyTarget: 500,
     createdAt: at,
@@ -187,9 +181,44 @@ export function enrollMember(
     createdBy: agent.id,
     sourcePaymentId: payment.id,
   });
+  audit(data, agent, 'ENROLL_MEMBER', 'Member', member.id, now);
+  return { member, payment };
+}
+
+/**
+ * The agent scans the QR code of a blank card to associate it with a registered member:
+ * card UNASSIGNED → ACTIVE, member CARD_TO_ASSIGN → ACTIVE, then the "account active" SMS.
+ * Only the QR token is accepted (no typed number).
+ */
+export function assignCard(
+  data: MockData,
+  agent: User,
+  memberId: string,
+  qrToken: string | undefined,
+  now: Date,
+): CardAssignResult {
+  const member = data.members.find((m) => m.id === memberId);
+  if (!member) throw fail(404, 'MEMBER_NOT_FOUND', 'Marchand introuvable.');
+  if (agent.role === 'AGENT' && member.agentId !== agent.id) {
+    throw fail(403, 'NOT_YOUR_MERCHANT', 'Ce marchand est suivi par un autre agent.');
+  }
+  if (member.status !== 'CARD_TO_ASSIGN') {
+    throw fail(409, 'INVALID_STATUS', 'Ce marchand a déjà une carte.');
+  }
+  if (!qrToken?.trim()) {
+    throw fail(422, 'QR_REQUIRED', 'Scannez le code QR de la carte.', { qrToken: ['Obligatoire'] });
+  }
+  const card = findCard(data, { qr: qrToken });
+  if (!card) throw fail(404, 'CARD_NOT_FOUND', 'Ce code QR n’est pas une carte WASSIA.');
+  if (card.status !== 'UNASSIGNED') {
+    throw fail(409, 'CARD_ALREADY_USED', 'Cette carte est déjà utilisée. Prenez une carte vierge.');
+  }
+  const at = now.toISOString();
   card.status = 'ACTIVE';
   card.memberId = member.id;
-
+  member.cardId = card.id;
+  member.status = 'ACTIVE';
+  member.updatedAt = at;
   sendSms(
     data,
     'ENROLLMENT',
@@ -197,8 +226,8 @@ export function enrollMember(
     { Numéro: member.accountNumber ?? '', Téléphone: '+225 07 07 07 07 07' },
     now,
   );
-  audit(data, agent, 'ENROLL_MEMBER', 'Member', member.id, now);
-  return { member, card, payment };
+  audit(data, agent, 'ASSIGN_CARD', 'Card', card.id, now);
+  return { member, card };
 }
 
 /** Day summary for an agent's home screen. */
@@ -226,5 +255,6 @@ export function agentToday(data: MockData, agent: User, now: Date): AgentToday {
         .filter((l) => mineIds.has(l.memberId) && (l.status === 'LATE_1' || l.status === 'LATE_2'))
         .map((l) => l.memberId),
     ).size,
+    cardsToAssign: mine.filter((m) => m.status === 'CARD_TO_ASSIGN').length,
   };
 }

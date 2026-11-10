@@ -1,9 +1,9 @@
 /**
  * Enrollment rules shared by the screens and the (mock) server.
  *
- * Client rule (2026-11-09): the agent registers a merchant only once the 1 000 F membership fee
- * has been received on the spot (cash, or Wave confirmed by the agent), and hands over the QR
- * card at the same time. A registered member has therefore always paid and has a card.
+ * Client rule (2026-11-10): the agent registers a merchant only once the 1 000 F membership fee
+ * has been received on the spot (cash, or Wave confirmed by the agent). The QR card is then
+ * associated in a separate step, by scanning it (see POST /cards/assign).
  *
  * Côte d'Ivoire mobile numbers: 10 digits, starting with 01, 05 or 07 (since 2021).
  */
@@ -27,12 +27,9 @@ export interface EnrollmentInput {
   paymentConfirmed?: boolean;
   /** Optional Wave transaction reference, for reconciliation. */
   paymentRef?: string;
-  /** Blank card handed over: scanned QR token or printed number. */
-  cardQrToken?: string;
-  cardNumber?: string;
 }
 
-export type EnrollmentField = keyof EnrollmentInput | 'card';
+export type EnrollmentField = keyof EnrollmentInput;
 export type EnrollmentErrors = Partial<Record<EnrollmentField, string>>;
 
 /** Keeps digits only: `07 00 00 00 00` → `0700000000`. */
@@ -86,20 +83,12 @@ export function validatePayment(input: Partial<EnrollmentInput>): EnrollmentErro
   return errors;
 }
 
-/** Step 4 — the blank card handed over. */
-export function validateCard(input: Partial<EnrollmentInput>): EnrollmentErrors {
-  return input.cardQrToken?.trim() || input.cardNumber?.trim()
-    ? {}
-    : { card: 'Scannez ou écrivez le numéro d’une carte vierge.' };
-}
-
-/** Everything required to register the member. */
+/** Everything required to register the member (the card is associated afterwards). */
 export function validateEnrollment(input: Partial<EnrollmentInput>): EnrollmentErrors {
   return {
     ...validateIdentity(input),
     ...validateDocuments(input),
     ...validatePayment(input),
-    ...validateCard(input),
   };
 }
 

@@ -29,8 +29,8 @@
 
 ## Phase 2 — Agent : inscription (2026-11-09, corrigée le 2026-11-10)
 
-- **Fait** : accueil du jour de l'agent (compte à rebours 16 h 00, collecte, versements, inscrits, retards, à remettre) ; inscription en 4 étapes : identité (contrôle du doublon de téléphone) → pièces et commerce (photos CNI + étalage) → **paiement des 1 000 F sur place** (espèces ou Wave confirmé par l'agent) → **carte remise** (scan QR ou numéro imprimé) et enregistrement ; « Mes inscriptions ».
-- **Correction du 10/11 (règle client)** : le membre n'existe qu'une fois payé et équipé de sa carte. Supprimés : statuts « paiement en attente » / « carte à associer », SMS de paiement, brouillon sur l'appareil, écran d'association séparé, bouton « Payer » du panneau Démo. Le faux serveur enregistre membre + paiement + écriture comptable + carte en une seule opération. Données de démo régénérées (version 2).
-- **Vérifié** : lint, 77 tests, build ; parcours joués dans un navigateur (téléphone), en espèces et par Wave ; les 1 000 F en espèces s'ajoutent au montant à remettre à la caissière.
-- **Reste** : mode hors connexion complet en Phase 4 ; la page du QR publique (Phase 3) sert désormais aux versements d'épargne, plus à l'adhésion.
-- **Hypothèses** : A20, A21, A23, A24 ajoutées ; A2 et A22 confirmées ; A14 sans objet.
+- **Fait** : accueil du jour de l'agent (compte à rebours 16 h 00, collecte, versements, inscrits, cartes à associer, retards, à remettre) ; inscription en 3 étapes : identité (contrôle du doublon de téléphone) → pièces et commerce (photos CNI + étalage) → **paiement des 1 000 F sur place** (espèces ou Wave confirmé par l'agent) et enregistrement ; puis **« Associer la carte » par scan du QR** d'une carte vierge (ou plus tard, depuis « Mes inscriptions » / l'accueil).
+- **Corrections du 10/11 (règles client)** : membre enregistré seulement après paiement ; plus de SMS de paiement ni de brouillon ; carte associée **uniquement par scan du QR** (champ « numéro imprimé » supprimé, refusé aussi côté serveur) ; lecteur QR `jsqr` pour les téléphones sans lecteur natif ; caméra virtuelle dans le panneau Démo pour tester sans carte. Données de démo régénérées (version 3).
+- **Vérifié** : lint, 81 tests, build ; parcours joués dans un navigateur (téléphone) : inscription → scan → carte activée, et inscription → « Associer plus tard » → carte à associer.
+- **Reste** : mode hors connexion complet en Phase 4 ; la page du QR publique (Phase 3) sert aux versements d'épargne.
+- **Hypothèses** : A20, A21, A24 ajoutées ; A2, A22, A23 confirmées ; A14 sans objet.

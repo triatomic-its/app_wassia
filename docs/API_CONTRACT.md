@@ -105,23 +105,24 @@ Model shapes: `src/app/core/models/*.model.ts`. Notes:
 
 ### Field agent — enrollment (Phase 2)
 
-Client rule (2026-11-09): the agent registers a merchant **only once the 1 000 F membership fee has been received on the spot** — in cash, or by Wave with the agent confirming he saw the Wave confirmation — and **hands over a blank QR card at the same time**. There is no pending state and no manual validation: a registered member has always paid and holds a card (`status: ACTIVE`). If the merchant does not pay, nothing is sent to the server.
+Client rule (2026-11-10): the agent registers a merchant **only once the 1 000 F membership fee has been received on the spot** — in cash, or by Wave with the agent confirming he saw the Wave confirmation. The member is then `CARD_TO_ASSIGN`. **Associating the card is a separate step, done only by scanning the QR code printed on a blank card** (no typed number); the member then becomes `ACTIVE`. If the scan cannot be done right away, the member stays `CARD_TO_ASSIGN` and the agent associates the card later. If the merchant does not pay, nothing is sent to the server. No manual validation.
 
 #### `GET /agent/today` — access: collect.field
 
 ```json
 {
-  "businessDate": "2026-11-09",
+  "businessDate": "2026-11-10",
   "cutoffTime": "16:00",
   "collected": 48500,
   "deposits": 37,
   "enrolled": 3,
   "toRemit": 48500,
-  "lateMembers": 2
+  "lateMembers": 2,
+  "cardsToAssign": 1
 }
 ```
 
-`collected`/`deposits`: the agent's confirmed payments of the business day (savings and membership fees); `toRemit`: **cash** collected (including membership fees paid in cash) minus remittances received by the cashier; `lateMembers`: own merchants with a loan in `LATE_1`/`LATE_2`.
+`collected`/`deposits`: the agent's confirmed payments of the business day (savings and membership fees); `toRemit`: **cash** collected (including membership fees paid in cash) minus remittances received by the cashier; `lateMembers`: own merchants with a loan in `LATE_1`/`LATE_2`; `cardsToAssign`: own members registered (paid) without a card.
 
 #### `GET /members/phone-check?phone=0700000000` — access: member.enroll
 
@@ -131,13 +132,9 @@ Client rule (2026-11-09): the agent registers a merchant **only once the 1 000 F
 
 Multipart `file`. Response `201 { "url": "…" }` — the reference to send in `idDocUrl` / `photoUrl`.
 
-#### `GET /cards/lookup?qr=<token>` or `?number=WAS-000124` — access: card.assign, cards.manage
-
-`{ "card": { "id", "printedNumber", "status" } }`; `number` also accepts the short form (`124`). 404 `CARD_NOT_FOUND`. Used by the agent to check the card is blank (`UNASSIGNED`) before registering.
-
 #### `POST /members` — access: member.enroll
 
-Registers the merchant, the 1 000 F payment and the card **in one atomic operation** (all or nothing).
+Registers the merchant and the 1 000 F payment **in one atomic operation** (all or nothing).
 
 ```json
 {
@@ -151,45 +148,37 @@ Registers the merchant, the 1 000 F payment and the card **in one atomic operati
   "photoUrl": "…",
   "paymentChannel": "CASH",
   "paymentConfirmed": true,
-  "paymentRef": "TX-998877",
-  "cardNumber": "WAS-000124"
+  "paymentRef": "TX-998877"
 }
 ```
 
 - `paymentChannel`: `CASH` or `WAVE`; `paymentConfirmed` must be `true` (the agent received the cash / saw the Wave confirmation); `paymentRef`: optional Wave transaction reference, used later in reconciliation with the Wave statement.
-- Card: `cardQrToken` (scanned) **or** `cardNumber` (typed, `WAS-000124` or `124`).
 
-`201` →
+`201` → `{ "member": { "status": "CARD_TO_ASSIGN", "accountNumber": "CPT-000121", "agentId": "u-ag1", … }, "payment": { "amount": 1000, "channel": "CASH", "status": "CONFIRMED", "agentId": "u-ag1", … } }`
 
-```json
-{
-  "member": {
-    "status": "ACTIVE",
-    "accountNumber": "CPT-000121",
-    "cardId": "…",
-    "agentId": "u-ag1",
-    "…": "…"
-  },
-  "card": { "printedNumber": "WAS-000124", "status": "ACTIVE", "memberId": "…" },
-  "payment": {
-    "amount": 1000,
-    "channel": "CASH",
-    "status": "CONFIRMED",
-    "agentId": "u-ag1",
-    "…": "…"
-  }
-}
-```
+Side effects: ledger entry (debit `571` Caisse or `5215` Wave / credit `7061` Frais d'adhésion), audit `ENROLL_MEMBER`. The amount comes from the `MEMBERSHIP` payment type (1 000 F by default, editable in admin). A cash fee is part of what the agent hands to the cashier.
 
-Side effects: ledger entry (debit `571` Caisse or `5215` Wave / credit `7061` Frais d'adhésion), SMS `ENROLLMENT` (« compte actif, carte prête »), audit `ENROLL_MEMBER`. The amount comes from the `MEMBERSHIP` payment type (1 000 F by default, editable in admin). A cash fee is part of what the agent hands to the cashier.
-
-| Error | Code                    | When                                                                                                                                                                    |
-| ----- | ----------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| 422   | `ENROLLMENT_INCOMPLETE` | missing/invalid field — `details` lists them (`fullName`, `phone`, `market`, `trade`, `idNumber`, `idDocUrl`, `photoUrl`, `paymentChannel`, `paymentConfirmed`, `card`) |
-| 409   | `PHONE_ALREADY_USED`    | the phone belongs to another merchant                                                                                                                                   |
-| 404   | `CARD_NOT_FOUND`        | unknown card                                                                                                                                                            |
-| 409   | `CARD_ALREADY_USED`     | the card is not blank                                                                                                                                                   |
+| Error | Code                    | When                                                                                                                                                            |
+| ----- | ----------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 422   | `ENROLLMENT_INCOMPLETE` | missing/invalid field — `details` lists them (`fullName`, `phone`, `market`, `trade`, `idNumber`, `idDocUrl`, `photoUrl`, `paymentChannel`, `paymentConfirmed`) |
+| 409   | `PHONE_ALREADY_USED`    | the phone belongs to another merchant                                                                                                                           |
 
 Phone: 10 digits starting with 01, 05 or 07 (`+225` prefix accepted), stored as `07 12 34 56 78`.
+
+#### `GET /cards/lookup?qr=<scanned token>` — access: card.assign, cards.manage
+
+`{ "card": { "id", "printedNumber", "status" } }` — lets the agent check the scanned card is blank (`UNASSIGNED`) before associating it. 404 `CARD_NOT_FOUND` when the QR is not a WASSIA card. (Back-office card management may also look up by `?number=WAS-000124`.)
+
+#### `POST /cards/assign` — access: card.assign
+
+Body `{ "memberId": "…", "qrToken": "<scanned token>" }` — **QR token only**, a typed card number is refused. → `200 { member, card }`, both `ACTIVE`. Side effects: SMS `ENROLLMENT` (« compte actif, carte prête »), audit `ASSIGN_CARD`.
+
+| Error | Code                                  | When                                        |
+| ----- | ------------------------------------- | ------------------------------------------- |
+| 422   | `QR_REQUIRED`                         | no `qrToken` (e.g. a typed number was sent) |
+| 403   | `NOT_YOUR_MERCHANT`                   | the merchant belongs to another agent       |
+| 404   | `MEMBER_NOT_FOUND` / `CARD_NOT_FOUND` | unknown merchant / QR is not a WASSIA card  |
+| 409   | `INVALID_STATUS`                      | the merchant already has a card             |
+| 409   | `CARD_ALREADY_USED`                   | the card is not blank                       |
 
 Other write endpoints (payment page, collection, cash closure, loans…) are added in the following phases.

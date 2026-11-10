@@ -11,10 +11,12 @@ import {
 import { environment } from '../../environments/environment';
 import { MockAuthService } from '../core/auth/auth.mock';
 import { AuthService } from '../core/auth/auth.service';
+import { SIMULATED_QR_SCANS } from '../shared/ui/card-scan';
 import { MockControl } from './control';
 import { MockDb } from './db';
 import { DevPanel } from './dev-panel/dev-panel';
 import { mockBackendInterceptor } from './mock-backend.interceptor';
+import { MockScanner } from './scanner';
 
 /**
  * Entry point of the fake back end. In production builds this file is replaced by
@@ -28,6 +30,8 @@ export const MOCK_PROVIDERS: (Provider | EnvironmentProviders)[] = environment.u
   ? [
       MockDb,
       MockControl,
+      MockScanner,
+      { provide: SIMULATED_QR_SCANS, useFactory: () => inject(MockScanner).scans$ },
       { provide: AuthService, useClass: MockAuthService },
       provideAppInitializer(() => {
         // Restore the clock offset before anything reads "now".

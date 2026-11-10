@@ -7,7 +7,6 @@ import {
   lucideBanknote,
   lucideCircleAlert,
   lucideCircleCheck,
-  lucideCreditCard,
   lucideLoaderCircle,
   lucideSmartphone,
 } from '@ng-icons/lucide';
@@ -22,27 +21,19 @@ import {
   formatPhone,
   hasErrors,
   isValidCiPhone,
-  validateCard,
   validateDocuments,
   validateIdentity,
   validatePayment,
 } from '../../../core/domain/enrollment';
 import { AgentHeader } from '../../../core/layout/agent-header';
-import { CardLookup } from '../../../core/models';
 import { FcfaPipe } from '../../../shared/pipes/fcfa.pipe';
 import { ButtonDirective } from '../../../shared/ui/button';
-import { CardRef, CardScan } from '../../../shared/ui/card-scan';
 import { ConfirmService } from '../../../shared/ui/confirm-dialog';
 import { Field, InputDirective } from '../../../shared/ui/field';
 import { AgentApi } from '../data/agent.api';
 import { CapturedPhoto, PhotoCapture } from './photo-capture';
 
-const STEPS = [
-  'Identité du marchand',
-  'Pièces et commerce',
-  'Paiement de l’adhésion',
-  'Carte et enregistrement',
-] as const;
+const STEPS = ['Identité du marchand', 'Pièces et commerce', 'Paiement de l’adhésion'] as const;
 const LAST = STEPS.length - 1;
 
 const STEP_OF: Record<EnrollmentField, number> = {
@@ -57,12 +48,9 @@ const STEP_OF: Record<EnrollmentField, number> = {
   paymentChannel: 2,
   paymentConfirmed: 2,
   paymentRef: 2,
-  card: 3,
-  cardQrToken: 3,
-  cardNumber: 3,
 };
 
-const VALIDATORS = [validateIdentity, validateDocuments, validatePayment, validateCard];
+const VALIDATORS = [validateIdentity, validateDocuments, validatePayment];
 
 const emptyForm = (market: string): EnrollmentInput => ({
   fullName: '',
@@ -74,14 +62,14 @@ const emptyForm = (market: string): EnrollmentInput => ({
 });
 
 /**
- * "Inscrire un marchand". Client rule (2026-11-09): the merchant is registered only once the
- * 1 000 F are received on the spot (cash or Wave) and the QR card is handed over. Nothing is
- * kept if the agent gives up before the end.
+ * "Inscrire un marchand" (client rule, 2026-11-10): the merchant is registered only once the
+ * 1 000 F are received on the spot (cash or Wave). The QR card is then scanned on the next
+ * screen. Nothing is kept if the agent gives up before registering.
  */
 @Component({
   selector: 'app-enroll-wizard',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [NgIcon, ButtonDirective, Field, InputDirective, PhotoCapture, CardScan, FcfaPipe],
+  imports: [NgIcon, ButtonDirective, Field, InputDirective, PhotoCapture, FcfaPipe],
   providers: [
     provideIcons({
       lucideCircleCheck,
@@ -89,7 +77,6 @@ const emptyForm = (market: string): EnrollmentInput => ({
       lucideLoaderCircle,
       lucideBanknote,
       lucideSmartphone,
-      lucideCreditCard,
     }),
   ],
   host: { class: 'flex flex-col gap-3.5 md:mx-auto md:w-full md:max-w-xl' },
@@ -349,55 +336,6 @@ const emptyForm = (market: string): EnrollmentInput => ({
           }
         }
       }
-
-      @case (3) {
-        <app-card-scan
-          scanLabel="Scanner le QR d'une carte vierge"
-          [disabled]="busy()"
-          (found)="lookup($event)"
-        />
-        <div aria-live="polite">
-          @if (card(); as c) {
-            @if (c.card.status === 'UNASSIGNED') {
-              <div
-                class="flex items-center gap-3 rounded-card border-[1.5px] border-sapin bg-success-soft p-3.5 text-success"
-              >
-                <ng-icon name="lucideCreditCard" size="26" aria-hidden="true" />
-                <div>
-                  <div class="font-display font-bold">
-                    Carte {{ c.card.printedNumber }} reconnue
-                  </div>
-                  <div class="text-sm">Carte vierge, prête à être remise.</div>
-                </div>
-              </div>
-            } @else {
-              <p
-                class="rounded-control bg-danger-soft p-3.5 text-sm font-semibold text-danger"
-                role="alert"
-              >
-                La carte {{ c.card.printedNumber }} est déjà utilisée. Prenez une carte vierge.
-              </p>
-            }
-          }
-          @if (errors().card) {
-            <p
-              class="rounded-control bg-danger-soft p-3.5 text-sm font-semibold text-danger"
-              role="alert"
-            >
-              {{ errors().card }}
-            </p>
-          }
-        </div>
-
-        <dl class="divide-y divide-border-soft rounded-card border border-border bg-surface">
-          @for (row of summary(); track row.label) {
-            <div class="flex items-center justify-between gap-4 px-4 py-3 text-sm">
-              <dt class="text-ink-muted">{{ row.label }}</dt>
-              <dd class="text-right font-semibold">{{ row.value }}</dd>
-            </div>
-          }
-        </dl>
-      }
     }
 
     <div aria-live="assertive">
@@ -434,10 +372,10 @@ const emptyForm = (market: string): EnrollmentInput => ({
           variant="success"
           type="button"
           class="flex-[2]"
-          [disabled]="submitting() || !cardReady()"
+          [disabled]="submitting()"
           (click)="submit()"
         >
-          {{ submitting() ? 'Enregistrement…' : 'Enregistrer et remettre la carte' }}
+          {{ submitting() ? 'Enregistrement…' : 'Enregistrer le membre' }}
         </button>
       }
     </div>
@@ -471,36 +409,14 @@ export class EnrollWizard {
   }>({
     state: 'idle',
   });
-  protected readonly card = signal<CardLookup | null>(null);
-  protected readonly busy = signal(false);
   protected readonly submitting = signal(false);
   protected readonly submitError = signal<string | null>(null);
 
   private readonly feeResource = rxResource({ stream: () => this.api.membershipFee() });
   protected readonly fee = computed(() => this.feeResource.value() ?? 1000);
-  protected readonly cardReady = computed(() => this.card()?.card.status === 'UNASSIGNED');
-
-  protected readonly summary = computed(() => {
-    const f = this.form();
-    return [
-      { label: 'Nom', value: f.fullName },
-      { label: 'Téléphone', value: formatPhone(f.phone) },
-      { label: 'Marché', value: f.market },
-      { label: 'Activité', value: f.trade },
-      { label: 'Pièces', value: f.idDocUrl && f.photoUrl ? 'Photos enregistrées' : 'Manquantes' },
-      {
-        label: 'Adhésion',
-        value: `${this.feeLabel()} · ${f.paymentChannel === 'WAVE' ? 'Wave' : 'Espèces'}`,
-      },
-    ];
-  });
 
   constructor() {
     this.header.use({ title: 'Inscrire un marchand', onBack: () => this.back() });
-  }
-
-  private feeLabel(): string {
-    return new FcfaPipe().transform(this.fee());
   }
 
   protected set(field: keyof EnrollmentInput, event: Event): void {
@@ -538,23 +454,6 @@ export class EnrollWizard {
         ),
       // Offline or error: the server checks again at registration.
       error: () => this.phoneState.set({ state: 'idle' }),
-    });
-  }
-
-  protected lookup(ref: CardRef): void {
-    this.errors.update((e) => ({ ...e, card: undefined }));
-    this.card.set(null);
-    this.form.update((f) => ({ ...f, cardQrToken: ref.qr, cardNumber: ref.number }));
-    this.busy.set(true);
-    this.api.lookupCard(ref).subscribe({
-      next: (c) => {
-        this.busy.set(false);
-        this.card.set(c);
-      },
-      error: (e) => {
-        this.busy.set(false);
-        this.errors.update((x) => ({ ...x, card: toApiError(e).message }));
-      },
     });
   }
 
@@ -600,11 +499,16 @@ export class EnrollWizard {
   }
 
   protected submit(): void {
+    // Same check as "Continuer": never send an unpaid registration.
+    const errors = VALIDATORS[this.step()](this.form());
+    this.errors.set(errors);
+    if (hasErrors(errors)) return;
     this.submitting.set(true);
     this.submitError.set(null);
     const f = this.form();
     this.api.enroll({ ...f, phone: formatPhone(f.phone) }).subscribe({
-      next: (r) => void this.router.navigate(['/agent/inscriptions', r.member.id, 'cree']),
+      // Registered and paid: next step is to scan the card.
+      next: (r) => void this.router.navigate(['/agent/inscriptions', r.member.id, 'carte']),
       error: (e: unknown) => {
         this.submitting.set(false);
         this.handleSubmitError(e);
@@ -617,11 +521,6 @@ export class EnrollWizard {
     if (body?.code === 'PHONE_ALREADY_USED') {
       this.errors.set({ phone: body.message });
       this.step.set(0);
-      return;
-    }
-    if (body?.code === 'CARD_ALREADY_USED' || body?.code === 'CARD_NOT_FOUND') {
-      this.card.set(null);
-      this.errors.set({ card: body.message });
       return;
     }
     if (body?.details) {
@@ -648,7 +547,6 @@ export class EnrollWizard {
       market: 'en-market',
       idNumber: 'en-id',
       trade: 'en-trade',
-      card: 'card-number',
     };
     const first = (Object.keys(errors) as EnrollmentField[]).map((k) => ids[k]).find(Boolean);
     if (first) queueMicrotask(() => document.getElementById(first)?.focus());

@@ -1,5 +1,5 @@
 import { TestBed } from '@angular/core/testing';
-import { provideRouter } from '@angular/router';
+import { Router, provideRouter } from '@angular/router';
 import { of } from 'rxjs';
 import { SessionStore } from '../../../core/auth/session.store';
 import { AgentApi } from '../data/agent.api';
@@ -12,7 +12,6 @@ function render() {
     membershipFee: vi.fn(() => of(1000)),
     enroll: vi.fn(),
     upload: vi.fn(),
-    lookupCard: vi.fn(),
   };
   TestBed.configureTestingModule({
     imports: [EnrollWizard],
@@ -66,17 +65,17 @@ function render() {
 }
 
 describe('EnrollWizard', () => {
-  it('starts on step 1 of 4 with the agent’s market preselected', () => {
+  it('starts on step 1 of 3 with the agent’s market preselected', () => {
     const { el } = render();
     expect(el.textContent).toContain('Identité du marchand');
-    expect(el.textContent).toContain('Étape 1 sur 4');
+    expect(el.textContent).toContain('Étape 1 sur 3');
     expect(el.querySelector<HTMLSelectElement>('#en-market')!.value).toBe('Marcory');
   });
 
   it('blocks "Continuer" and explains what is missing', () => {
     const { el, click } = render();
     click('Continuer');
-    expect(el.textContent).toContain('Étape 1 sur 4');
+    expect(el.textContent).toContain('Étape 1 sur 3');
     expect(el.textContent).toContain('Écrivez le nom et les prénoms.');
     expect(el.textContent).toContain('Écrivez le numéro de téléphone.');
   });
@@ -96,24 +95,35 @@ describe('EnrollWizard', () => {
     fillUntilPayment();
     expect(el.textContent).toContain('Paiement de l’adhésion');
     expect(text()).toContain('1 000 F');
-    click('Continuer');
+    click('Enregistrer le membre');
     expect(el.textContent).toContain('Choisissez : espèces ou Wave.');
   });
 
-  it('requires the agent to confirm the cash was received', () => {
-    const { el, click, fixture, fillUntilPayment, text } = render();
+  it('requires the cash confirmation, then registers and opens the card scan', () => {
+    const { el, click, fixture, fillUntilPayment, text, api } = render();
+    const router = TestBed.inject(Router);
+    const navigate = vi.spyOn(router, 'navigate').mockResolvedValue(true);
+    api.enroll.mockReturnValue(of({ member: { id: 'm-new' }, payment: {} }) as never);
     fillUntilPayment();
     el.querySelector<HTMLInputElement>('input[value="CASH"]')!.dispatchEvent(new Event('change'));
     fixture.detectChanges();
     expect(text()).toContain('J’ai reçu 1 000 F en espèces');
-    click('Continuer');
+    click('Enregistrer le membre');
     expect(text()).toContain('Confirmez que vous avez reçu les 1 000 F.');
+    expect(api.enroll).not.toHaveBeenCalled();
     const box = el.querySelector<HTMLInputElement>('input[type="checkbox"]')!;
     box.checked = true;
     box.dispatchEvent(new Event('change'));
     fixture.detectChanges();
-    click('Continuer');
-    expect(el.textContent).toContain('Carte et enregistrement');
+    click('Enregistrer le membre');
+    expect(api.enroll).toHaveBeenCalledWith(
+      expect.objectContaining({
+        paymentChannel: 'CASH',
+        paymentConfirmed: true,
+        phone: '07 00 00 00 09',
+      }),
+    );
+    expect(navigate).toHaveBeenCalledWith(['/agent/inscriptions', 'm-new', 'carte']);
   });
 
   it('asks for the Wave confirmation when paid by Wave', () => {

@@ -3,7 +3,7 @@ import { FR } from '../../core/i18n/fr';
 import { ROLES } from '../../core/models';
 import { EnrollmentInput } from '../../core/domain/enrollment';
 import { maskName } from '../../shared/pipes/mask-name.pipe';
-import { agentToday, enrollMember, findByPhone, findCard } from '../domain';
+import { agentToday, assignCard, enrollMember, findByPhone, findCard } from '../domain';
 import { MockContext, MockRoute, fail, matchesText, paginate } from '../http';
 import { MockData } from '../seed/seed';
 
@@ -141,8 +141,19 @@ export const MOCK_ROUTES: readonly MockRoute[] = [
         qr: ctx.query.get('qr'),
         number: ctx.query.get('number'),
       });
-      if (!card) throw fail(404, 'CARD_NOT_FOUND', 'Carte inconnue. Vérifiez le numéro imprimé.');
+      if (!card) throw fail(404, 'CARD_NOT_FOUND', 'Ce code QR n’est pas une carte WASSIA.');
       return { card: { id: card.id, printedNumber: card.printedNumber, status: card.status } };
+    },
+  },
+  {
+    method: 'POST',
+    pattern: '/cards/assign',
+    access: ['card.assign'],
+    handler: (ctx) => {
+      const body = (ctx.body ?? {}) as { memberId?: string; qrToken?: string };
+      return ctx.db.write((data) =>
+        assignCard(data, ctx.user!, body.memberId ?? '', body.qrToken, ctx.now),
+      );
     },
   },
   {

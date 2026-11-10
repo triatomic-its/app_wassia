@@ -31,7 +31,7 @@ import { Rng } from '../rng';
 import { ACCOUNTS, FIRST_NAMES, LAST_NAMES, SMS_TEMPLATES, TRADES } from './reference';
 
 /** Bump when the data shape or business rules change: old browser data is discarded. */
-export const MOCK_DATA_VERSION = 2;
+export const MOCK_DATA_VERSION = 3;
 export const DEFAULT_SEED = 20261109;
 
 export interface MockData {
@@ -137,8 +137,10 @@ export function seedMockData(now: Date, seed = DEFAULT_SEED): MockData {
   ];
 
   // ---- Members ------------------------------------------------------------
-  // Every member has paid the 1 000 F on the spot and holds a card (client rule, 2026-11-09).
-  const statusFor = (i: number): EnrollmentStatus => (i === 119 ? 'SUSPENDED' : 'ACTIVE');
+  // Every member paid the 1 000 F on the spot (client rule, 2026-11-10). The three most recent
+  // ones are still waiting for the agent to scan their card.
+  const statusFor = (i: number): EnrollmentStatus =>
+    i < 3 ? 'CARD_TO_ASSIGN' : i === 119 ? 'SUSPENDED' : 'ACTIVE';
 
   const usedNames = new Set<string>();
   const members: Member[] = [];
@@ -185,7 +187,7 @@ export function seedMockData(now: Date, seed = DEFAULT_SEED): MockData {
   }
   let nextCard = 0;
   for (const m of members) {
-    {
+    if (m.status !== 'CARD_TO_ASSIGN') {
       const card = cards[nextCard++];
       card.status = 'ACTIVE';
       card.memberId = m.id;
@@ -227,6 +229,7 @@ export function seedMockData(now: Date, seed = DEFAULT_SEED): MockData {
       createdAt: m.createdAt,
     });
 
+    if (m.status === 'CARD_TO_ASSIGN') continue; // no card yet: no savings deposit
     const deposits = rng.int(2, 7);
     for (let k = 0; k < deposits; k++) {
       const at = created + rng.next() * (nowMs - created);

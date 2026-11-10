@@ -3,7 +3,6 @@ import {
   hasErrors,
   isValidCiPhone,
   phoneDigits,
-  validateCard,
   validateDocuments,
   validateEnrollment,
   validateIdentity,
@@ -41,7 +40,6 @@ describe('enrollment validation', () => {
     photoUrl: 'mock-upload://b',
     paymentChannel: 'CASH' as const,
     paymentConfirmed: true,
-    cardNumber: 'WAS-000104',
   };
 
   it('accepts a complete file', () => {
@@ -61,17 +59,11 @@ describe('enrollment validation', () => {
   });
 });
 
-describe('membership payment and card', () => {
+describe('membership payment', () => {
   it('requires a channel, then the agent’s confirmation', () => {
     expect(validatePayment({}).paymentChannel).toBeTruthy();
     expect(validatePayment({ paymentChannel: 'CASH' }).paymentConfirmed).toMatch(/reçu/);
     expect(validatePayment({ paymentChannel: 'WAVE' }).paymentConfirmed).toMatch(/Wave/);
     expect(validatePayment({ paymentChannel: 'WAVE', paymentConfirmed: true })).toEqual({});
-  });
-
-  it('requires a card (scanned or typed)', () => {
-    expect(validateCard({}).card).toBeTruthy();
-    expect(validateCard({ cardNumber: 'WAS-000104' })).toEqual({});
-    expect(validateCard({ cardQrToken: 'ABC' })).toEqual({});
   });
 });

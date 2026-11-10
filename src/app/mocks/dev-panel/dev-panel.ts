@@ -12,6 +12,7 @@ import { ButtonDirective } from '../../shared/ui/button';
 import { InputDirective } from '../../shared/ui/field';
 import { FAULTS, FaultKind, MockControl } from '../control';
 import { MockDb } from '../db';
+import { MockScanner } from '../scanner';
 
 const LATENCIES = [
   { label: 'Aucune (0 ms)', min: 0, max: 0 },
@@ -175,10 +176,13 @@ const LATENCIES = [
         </section>
 
         <section class="flex flex-col gap-2">
-          <h3 class="font-bold">Cartes</h3>
-          <p class="text-sm">
-            Prochaine carte vierge : <b class="font-display text-primary">{{ nextFreeCard() }}</b>
+          <h3 class="font-bold">Scan de carte (sans caméra)</h3>
+          <p class="text-sm text-ink-muted">
+            Sur l'écran « Associer la carte », simule le scan du code QR d'une carte vierge.
           </p>
+          <button appButton variant="outline" type="button" (click)="simulateScan()">
+            Scanner la carte vierge {{ nextFreeCard() }}
+          </button>
         </section>
 
         <section class="flex flex-col gap-2">
@@ -202,6 +206,7 @@ export class DevPanel {
   protected readonly clock = inject(ClockService);
   protected readonly control = inject(MockControl);
   private readonly db = inject(MockDb);
+  private readonly scanner = inject(MockScanner);
   private readonly auth = inject(AuthService);
   private readonly router = inject(Router);
 
@@ -269,10 +274,19 @@ export class DevPanel {
     this.control.update({ fault: kind });
   }
 
-  protected readonly nextFreeCard = computed(() => {
+  private readonly freeCard = computed(() => {
     this.db.revision();
-    return this.db.snapshot.cards.find((c) => c.status === 'UNASSIGNED')?.printedNumber ?? '—';
+    return this.db.snapshot.cards.find((c) => c.status === 'UNASSIGNED');
   });
+  protected readonly nextFreeCard = computed(() => this.freeCard()?.printedNumber ?? '—');
+
+  /** Sends the QR token of the next blank card to the open scanner, then closes the panel. */
+  protected simulateScan(): void {
+    const card = this.freeCard();
+    if (!card) return;
+    this.open.set(false);
+    this.scanner.scan(card.qrToken);
+  }
 
   protected reset(): void {
     if (!confirm('Effacer toutes les données de démonstration et repartir des données de départ ?'))
