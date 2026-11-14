@@ -6,7 +6,7 @@ import { cn } from '../../utils/cn';
   selector: 'app-stat-card',
   changeDetection: ChangeDetectionStrategy.OnPush,
   host: {
-    class: 'block min-w-0 rounded-card border border-border bg-surface',
+    class: 'block min-w-0 rounded-card bg-surface shadow-card',
     '[class.px-5]': '!compact()',
     '[class.py-4]': '!compact()',
     '[class.p-3.5]': 'compact()',
@@ -23,10 +23,10 @@ export class StatCard {
 
   protected readonly valueClass = computed(() =>
     cn(
-      'font-display font-bold',
+      'font-display font-bold tracking-tight',
       this.compact() ? 'mt-1 text-[1.375rem]' : 'mt-1.5 text-2xl sm:text-[1.75rem]',
       {
-        'text-primary': this.tone() === 'default',
+        'text-ink': this.tone() === 'default',
         'text-danger': this.tone() === 'danger',
         'text-sapin': this.tone() === 'success',
       },

@@ -8,11 +8,11 @@
     </caption>
   }
   <thead>
-    <tr class="bg-surface-alt text-left text-xs text-ink-muted">
+    <tr class="bg-bo-head text-left text-[0.6875rem] tracking-[0.07em] text-bo-muted uppercase">
       @for (col of columns(); track col.key) {
         <th
           scope="col"
-          class="px-3 py-2.5 font-semibold first:pl-5 last:pr-5"
+          class="px-4 py-2.5 font-semibold first:pl-6 last:pr-6"
           [class.text-right]="col.align === 'end'"
         >
           {{ col.label }}
@@ -25,10 +25,13 @@
   </thead>
   <tbody>
     @for (view of rowViews(); track view.key) {
-      <tr class="border-t border-border-soft" [class.bg-info-soft]="view.selected">
+      <tr
+        class="border-t border-border-soft transition-colors hover:bg-bo-head"
+        [class.bg-info-soft]="view.selected"
+      >
         @for (col of columns(); track col.key) {
           <td
-            class="px-3 py-3 first:pl-5 first:font-semibold last:pr-5"
+            class="px-4 py-3 first:pl-6 first:font-semibold last:pr-6"
             [class.text-right]="col.align === 'end'"
           >
             <ng-container

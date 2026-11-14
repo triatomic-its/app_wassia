@@ -4,7 +4,7 @@ import { ChangeDetectionStrategy, Component, input } from '@angular/core';
 @Component({
   selector: 'app-panel',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  host: { class: 'block min-w-0 overflow-hidden rounded-card border border-border bg-surface' },
+  host: { class: 'block min-w-0 overflow-hidden rounded-card bg-surface shadow-card' },
   templateUrl: './panel.component.html',
 })
 export class Panel {

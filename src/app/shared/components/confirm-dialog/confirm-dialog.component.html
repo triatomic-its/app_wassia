@@ -1,7 +1,7 @@
-<h2 id="confirm-title" class="text-xl font-bold">{{ data.title }}</h2>
+<h2 id="confirm-title" class="text-xl font-extrabold tracking-tight">{{ data.title }}</h2>
 <p class="mt-2 text-ink-muted">{{ data.message }}</p>
 @if (data.reasonRequired) {
-  <label for="confirm-reason" class="mt-4 block text-sm font-semibold">
+  <label for="confirm-reason" class="mt-4 block font-display text-sm font-semibold">
     {{ data.reasonLabel ?? reasonLabel }} <span class="text-danger" aria-hidden="true">*</span>
   </label>
   <textarea

@@ -1,22 +1,32 @@
 @if (scanning()) {
-  <div class="relative overflow-hidden rounded-card bg-night">
+  <div class="relative overflow-hidden rounded-card bg-scan-radial">
     <video #video class="aspect-square w-full object-cover" playsinline muted></video>
-    <div
-      class="pointer-events-none absolute inset-[18%] rounded-card border-4 border-accent"
-      aria-hidden="true"
-    ></div>
+    <div class="pointer-events-none absolute inset-[16%]" aria-hidden="true">
+      <span
+        class="absolute top-0 left-0 size-[20%] rounded-tl-[14px] border-t-4 border-l-4 border-emerald"
+      ></span>
+      <span
+        class="absolute top-0 right-0 size-[20%] rounded-tr-[14px] border-t-4 border-r-4 border-emerald"
+      ></span>
+      <span
+        class="absolute bottom-0 left-0 size-[20%] rounded-bl-[14px] border-b-4 border-l-4 border-emerald"
+      ></span>
+      <span
+        class="absolute right-0 bottom-0 size-[20%] rounded-br-[14px] border-r-4 border-b-4 border-emerald"
+      ></span>
+    </div>
     <button
       appButton
       variant="accent"
       type="button"
-      class="absolute right-3 bottom-3"
+      class="absolute right-3 bottom-3 min-h-12 rounded-pill px-4 text-sm"
       (click)="stop()"
     >
       <ng-icon name="lucideX" size="20" aria-hidden="true" />Arrêter
     </button>
   </div>
   <p class="text-center text-sm text-ink-muted" aria-live="polite">
-    Placez le code QR de la carte dans le cadre jaune.
+    Placez le code QR de la carte dans le cadre vert.
   </p>
 } @else {
   <button
@@ -28,14 +38,17 @@
     [disabled]="disabled()"
     (click)="start()"
   >
-    <ng-icon name="lucideScanQrCode" size="28" aria-hidden="true" />{{ scanLabel() }}
+    <span class="flex size-12 shrink-0 items-center justify-center rounded-button bg-white/15">
+      <ng-icon name="lucideScanQrCode" size="28" aria-hidden="true" />
+    </span>
+    {{ scanLabel() }}
   </button>
 }
 <canvas #canvas class="hidden"></canvas>
 
 @if (cameraError()) {
   <p
-    class="flex items-start gap-3 rounded-control bg-warning-soft p-3.5 text-sm text-warning"
+    class="flex items-start gap-3 rounded-control bg-warning-soft px-4 py-3.5 text-sm text-warning"
     role="alert"
   >
     <ng-icon name="lucideCameraOff" size="22" class="shrink-0" aria-hidden="true" />

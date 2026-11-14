@@ -5,7 +5,7 @@ import { Tone } from '@core/models';
 export type { Tone } from '@core/models';
 
 const chip = cva(
-  'inline-flex items-center gap-1.5 whitespace-nowrap rounded-pill px-2.5 py-1 text-xs font-bold',
+  'inline-flex items-center gap-1.5 whitespace-nowrap rounded-pill px-2.5 py-1 text-xs font-bold leading-snug',
   {
     variants: {
       tone: {

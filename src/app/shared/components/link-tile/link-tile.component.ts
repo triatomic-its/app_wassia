@@ -4,12 +4,17 @@ import { NgIcon, provideIcons } from '@ng-icons/core';
 import { lucideChevronRight } from '@ng-icons/lucide';
 import { cva } from 'class-variance-authority';
 
-const tileClass = cva('flex items-center gap-3 rounded-control p-3.5 text-sm', {
+const tileClass = cva(
+  'press flex min-h-16 items-center gap-3.5 rounded-card bg-surface px-4 py-3 text-[0.9375rem] font-semibold text-ink shadow-card hover:bg-surface-alt',
+);
+
+/** Coloured square behind the icon (mockup icon tiles). */
+const iconClass = cva('flex size-[2.375rem] shrink-0 items-center justify-center rounded-tile', {
   variants: {
     tone: {
-      info: 'min-h-14 bg-info-soft font-semibold text-info',
-      warning: 'min-h-14 bg-warning-soft font-semibold text-warning',
-      neutral: 'min-h-12 border border-border bg-surface text-ink-muted hover:border-primary',
+      info: 'bg-primary-soft text-primary',
+      warning: 'bg-danger-soft text-danger',
+      neutral: 'bg-sapin-soft text-sapin',
     },
   },
 });
@@ -35,5 +40,6 @@ export class LinkTile {
   readonly icon = input<string>();
   readonly actionLabel = input('Voir');
 
-  protected readonly classes = computed(() => tileClass({ tone: this.tone() }));
+  protected readonly classes = tileClass();
+  protected readonly iconClasses = computed(() => iconClass({ tone: this.tone() }));
 }

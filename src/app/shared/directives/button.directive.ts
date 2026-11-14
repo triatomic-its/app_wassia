@@ -5,8 +5,8 @@ import { cn } from '../utils/cn';
 export const buttonVariants = cva(
   [
     'inline-flex items-center justify-center gap-2 font-display font-bold select-none',
-    'rounded-control transition-colors cursor-pointer',
-    'disabled:cursor-not-allowed disabled:opacity-50 aria-disabled:cursor-not-allowed aria-disabled:opacity-50',
+    'rounded-button press cursor-pointer text-center',
+    'disabled:cursor-not-allowed disabled:opacity-50 disabled:shadow-none aria-disabled:cursor-not-allowed aria-disabled:opacity-50',
     '[&_ng-icon]:shrink-0',
   ],
   {
@@ -15,17 +15,18 @@ export const buttonVariants = cva(
         /** Back-office main action (navy). */
         primary: 'bg-primary text-white hover:bg-primary-hover',
         /** Agent main action (sapin green), e.g. "Scanner une carte". */
-        success: 'bg-sapin text-white hover:bg-sapin-hover',
+        success: 'bg-sapin text-white shadow-cta hover:bg-sapin-hover',
         /** Highlight on dark backgrounds (gold). */
-        accent: 'bg-accent text-primary hover:bg-accent-light',
-        /** Secondary action: white with navy border. */
-        outline: 'border-[1.5px] border-primary bg-surface text-primary hover:bg-info-soft',
-        ghost: 'bg-transparent text-primary hover:bg-neutral-soft',
+        accent: 'bg-accent text-night hover:bg-accent-light',
+        /** Secondary action: white with grey border (mockup "Retour"). */
+        outline:
+          'border-[1.5px] border-border bg-surface font-semibold text-ink hover:border-ink-faint hover:bg-surface-alt',
+        ghost: 'bg-transparent font-semibold text-sapin hover:bg-sapin-soft',
         danger: 'bg-danger text-white hover:opacity-90',
       },
       size: {
-        /** 48px — minimum touch target. */
-        md: 'min-h-12 px-5 text-base',
+        /** 56px (mockup), above the 48px minimum. */
+        md: 'min-h-14 px-5 text-base',
         /** Large field action (mockup agent home). */
         xl: 'min-h-[4.75rem] rounded-card px-5 text-lg',
         /** Square icon-only (label stays in aria-label + tooltip). */

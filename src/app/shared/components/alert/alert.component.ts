@@ -3,17 +3,20 @@ import { NgIcon } from '@ng-icons/core';
 import { cva } from 'class-variance-authority';
 import { Tone } from '@core/models';
 
-const alertClass = cva('flex items-start gap-3 rounded-control p-3.5 text-sm leading-normal', {
-  variants: {
-    tone: {
-      success: 'bg-success-soft text-success',
-      danger: 'bg-danger-soft font-semibold text-danger',
-      warning: 'bg-warning-soft text-warning',
-      info: 'bg-info-soft text-info',
-      neutral: 'bg-neutral-soft text-ink',
+const alertClass = cva(
+  'flex items-start gap-3 rounded-control px-4 py-3.5 text-sm leading-normal',
+  {
+    variants: {
+      tone: {
+        success: 'bg-success-soft text-success',
+        danger: 'bg-danger-soft font-semibold text-danger',
+        warning: 'bg-warning-soft text-warning',
+        info: 'bg-info-soft text-info',
+        neutral: 'bg-neutral-soft text-ink',
+      },
     },
   },
-});
+);
 
 /**
  * Inline message box: `<app-alert tone="danger" icon="lucideCircleAlert">…</app-alert>`.
