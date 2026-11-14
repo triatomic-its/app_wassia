@@ -15,6 +15,14 @@ export interface AgentHeaderState {
 @Injectable({ providedIn: 'root' })
 export class AgentHeader {
   readonly state = signal<AgentHeaderState | null>(null);
+  /** Presentation only: tall night header that the first card overlaps (mockup agent home). */
+  readonly hero = signal(false);
+
+  /** Call from a component constructor to get the tall overlapped header. */
+  useHero(): void {
+    this.hero.set(true);
+    inject(DestroyRef).onDestroy(() => this.hero.set(false));
+  }
 
   /** Call from a component constructor. */
   use(state: AgentHeaderState): void {

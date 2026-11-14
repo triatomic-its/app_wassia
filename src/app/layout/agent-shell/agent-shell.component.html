@@ -1,16 +1,16 @@
 <!-- Tablet / desktop rail -->
 <nav
-  class="sticky top-0 hidden h-dvh w-28 shrink-0 flex-col items-stretch gap-1 bg-primary px-2 py-5 md:flex"
+  class="sticky top-0 hidden h-dvh w-28 shrink-0 flex-col items-stretch gap-1.5 bg-primary px-2 py-5 md:flex"
   [attr.aria-label]="t.layout.mainMenu"
 >
-  <app-brand variant="symbol" class="mx-auto mb-5" />
+  <app-brand variant="symbol" class="mx-auto mb-6" />
   @for (item of items(); track item.path) {
     <a
       [routerLink]="item.path"
-      routerLinkActive="!bg-primary-hover !text-accent-light"
+      routerLinkActive="!border-accent !bg-white/10 !text-white font-bold"
       #rla="routerLinkActive"
       [attr.aria-current]="rla.isActive ? 'page' : null"
-      class="flex min-h-16 flex-col items-center justify-center gap-1 rounded-control text-xs font-semibold text-nav-ink hover:bg-primary-hover"
+      class="flex min-h-16 flex-col items-center justify-center gap-1 rounded-r-panel border-l-[3px] border-transparent text-xs font-semibold text-nav-ink transition-colors hover:bg-white/10 hover:text-white"
     >
       <ng-icon [name]="item.icon" size="24" aria-hidden="true" />{{ item.label }}
     </a>
@@ -18,33 +18,74 @@
 </nav>
 
 <div class="flex min-w-0 flex-1 flex-col">
-  <header
-    class="flex items-center justify-between gap-3 bg-primary px-5 pt-[max(1rem,env(safe-area-inset-top))] pb-4 text-white"
-  >
-    @if (header.state(); as page) {
-      <div class="flex min-w-0 items-center gap-2">
-        @if (page.back || page.onBack) {
-          <button
-            type="button"
-            class="-ml-2 flex size-11 shrink-0 items-center justify-center rounded-full hover:bg-primary-hover"
-            aria-label="Retour"
-            (click)="goBack(page)"
-          >
-            <ng-icon name="lucideArrowLeft" size="24" aria-hidden="true" />
-          </button>
-        }
-        <h1 class="truncate font-display text-xl font-bold text-white">{{ page.title }}</h1>
-      </div>
-    } @else {
-      <div class="min-w-0">
-        <div class="text-sm text-nav-ink">{{ today() }}</div>
-        <div class="truncate font-display text-xl font-bold">{{ greeting() }}</div>
-      </div>
-    }
-    <app-brand [onDark]="true" [width]="150" class="hidden lg:block" />
-    <div class="flex shrink-0 items-center gap-2">
+  @if (header.state(); as page) {
+    <!-- Step screens: white bar, green back arrow, centred title (mockup "Inscrire un marchand") -->
+    <header
+      class="sticky top-0 z-20 flex items-center gap-1 border-b border-border-soft bg-surface px-2 pt-[max(0.5rem,env(safe-area-inset-top))] pb-2 md:px-4"
+    >
+      @if (page.back || page.onBack) {
+        <button
+          type="button"
+          class="flex size-12 shrink-0 items-center justify-center rounded-full text-sapin hover:bg-sapin-soft"
+          aria-label="Retour"
+          (click)="goBack(page)"
+        >
+          <ng-icon name="lucideChevronLeft" size="26" aria-hidden="true" />
+        </button>
+      } @else {
+        <span class="size-12 shrink-0" aria-hidden="true"></span>
+      }
+      <h1
+        class="min-w-0 flex-1 truncate text-center font-display text-base font-bold text-ink md:text-left md:text-lg"
+      >
+        {{ page.title }}
+      </h1>
       <span
-        class="flex shrink-0 items-center gap-2 rounded-pill bg-primary-hover px-3 py-1.5 text-xs font-semibold"
+        class="flex size-12 shrink-0 items-center justify-center"
+        role="status"
+        [attr.aria-label]="network.online() ? t.layout.online : t.layout.offlineShort"
+      >
+        <span
+          class="size-2.5 rounded-full"
+          [class]="network.online() ? 'bg-emerald' : 'bg-accent'"
+          aria-hidden="true"
+        ></span>
+      </span>
+    </header>
+  } @else {
+    <!-- Home: night header with diagonal band, avatar and greeting (mockup "Accueil du jour") -->
+    <header
+      class="relative overflow-hidden bg-night px-5 pt-[max(1.25rem,env(safe-area-inset-top))] text-white md:px-8"
+      [class]="header.hero() ? 'pb-24' : 'pb-5'"
+    >
+      <span
+        class="skew-band -top-5 -right-24 h-[150%] w-44 bg-primary md:right-10"
+        aria-hidden="true"
+      ></span>
+      <div class="relative flex items-center gap-3">
+        <span
+          class="flex size-11 shrink-0 items-center justify-center rounded-full bg-accent font-display text-[0.9375rem] font-bold text-night"
+          aria-hidden="true"
+          >{{ initials() }}</span
+        >
+        <div class="min-w-0 flex-1">
+          <p class="truncate text-[0.8125rem] text-header-ink">{{ today() }}</p>
+          <p class="truncate font-display text-[1.375rem] font-bold tracking-tight">
+            {{ greeting() }}
+          </p>
+        </div>
+        <app-brand [onDark]="true" [width]="150" class="hidden lg:block" />
+        <button
+          type="button"
+          class="flex min-h-11 shrink-0 items-center gap-1.5 rounded-pill bg-white/10 px-3.5 text-xs font-semibold text-white hover:bg-white/20"
+          (click)="logout()"
+        >
+          <ng-icon name="lucideLogOut" size="18" aria-hidden="true" />Quitter
+        </button>
+      </div>
+      <p
+        class="relative mt-4 inline-flex items-center gap-1.5 rounded-pill px-2.5 py-1 text-[0.8125rem] font-semibold"
+        [class]="network.online() ? 'bg-emerald/20 text-online' : 'bg-accent/20 text-accent-light'"
         role="status"
       >
         <span
@@ -52,27 +93,18 @@
           [class]="network.online() ? 'bg-emerald' : 'bg-accent'"
           aria-hidden="true"
         ></span>
-        <span [class]="header.state() ? 'sr-only md:not-sr-only' : ''">{{
-          network.online() ? t.layout.online : t.layout.offlineShort
-        }}</span>
-      </span>
-      <button
-        type="button"
-        class="min-h-11 items-center gap-1.5 rounded-pill px-3 text-xs font-semibold text-nav-ink hover:bg-primary-hover"
-        [class]="header.state() ? 'hidden md:flex' : 'flex'"
-        (click)="logout()"
-      >
-        <ng-icon name="lucideLogOut" size="18" aria-hidden="true" />Quitter
-      </button>
-    </div>
-  </header>
+        {{ network.online() ? t.layout.online : t.layout.offlineShort }}
+      </p>
+    </header>
+  }
 
   <app-offline-banner />
 
   <!-- pb leaves room for the fixed bottom bar on phones -->
   <main
     id="main"
-    class="flex w-full flex-1 flex-col gap-3.5 px-4 pt-4 pb-28 md:px-6 md:pb-6 lg:max-w-6xl"
+    class="relative flex w-full flex-1 flex-col gap-3.5 px-4 pt-4 pb-32 md:px-6 md:pb-6 lg:max-w-6xl"
+    [class.-mt-20]="header.hero() && !header.state()"
   >
     <router-outlet />
   </main>
@@ -80,25 +112,29 @@
 
 <!-- Phone bottom tab bar -->
 <nav
-  class="fixed inset-x-0 bottom-0 z-30 flex h-[4.5rem] items-stretch border-t border-border bg-surface px-1 pb-[env(safe-area-inset-bottom)] md:hidden"
+  class="fixed inset-x-0 bottom-0 z-30 grid h-[5.5rem] auto-cols-fr grid-flow-col items-start border-t border-border-soft bg-surface px-1 pt-2 pb-[max(1.25rem,env(safe-area-inset-bottom))] md:hidden"
   [attr.aria-label]="t.layout.mainMenu"
 >
   @for (item of items(); track item.path) {
     <a
       [routerLink]="item.path"
-      routerLinkActive="!text-sapin font-bold"
+      routerLinkActive="is-active"
       #rla="routerLinkActive"
       [attr.aria-current]="rla.isActive ? 'page' : null"
-      class="flex flex-1 flex-col items-center justify-center gap-1 text-[0.6875rem] font-semibold text-ink-muted"
+      class="group flex min-h-12 flex-col items-center gap-1 font-display text-[0.6875rem] font-semibold text-ink-faint [&.is-active]:font-bold [&.is-active]:text-sapin"
     >
       @if (item.primary) {
         <span
-          class="-mt-6 flex size-12 items-center justify-center rounded-full border-4 border-surface bg-sapin text-white"
+          class="-mt-8 flex size-[3.625rem] items-center justify-center rounded-full bg-accent text-night shadow-gold"
+        >
+          <ng-icon [name]="item.icon" size="26" aria-hidden="true" />
+        </span>
+      } @else {
+        <span
+          class="flex h-[1.875rem] w-14 items-center justify-center rounded-pill group-[.is-active]:bg-sapin-soft"
         >
           <ng-icon [name]="item.icon" size="22" aria-hidden="true" />
         </span>
-      } @else {
-        <ng-icon [name]="item.icon" size="22" aria-hidden="true" />
       }
       {{ item.label }}
     </a>

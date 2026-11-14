@@ -2,7 +2,7 @@ import { ChangeDetectionStrategy, Component, computed, inject } from '@angular/c
 import { Router, RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
 import { NgIcon, provideIcons } from '@ng-icons/core';
 import {
-  lucideArrowLeft,
+  lucideChevronLeft,
   lucideHandCoins,
   lucideHouse,
   lucideLogOut,
@@ -23,7 +23,7 @@ import { NetworkStatus } from '@core/services/network-status.service';
 
 /**
  * Field-agent PWA layout (mockup):
- * phone = navy top bar + bottom tab bar with a raised "Scanner" button;
+ * phone = night header (home) or white step bar + bottom tab bar with a raised gold "Scanner" button;
  * tablet and up (`md`, 768 px) = left rail, content uses the extra width (list + detail).
  */
 @Component({
@@ -32,7 +32,7 @@ import { NetworkStatus } from '@core/services/network-status.service';
   imports: [RouterOutlet, RouterLink, RouterLinkActive, NgIcon, Brand, OfflineBanner],
   providers: [
     provideIcons({
-      lucideArrowLeft,
+      lucideChevronLeft,
       lucideLogOut,
       lucideHouse,
       lucideRoute,
@@ -69,6 +69,14 @@ export class AgentShell {
     const perms = this.session.permissions();
     return AGENT_NAV.filter((item) => perms.has(item.permission));
   });
+  protected readonly initials = computed(() =>
+    (this.session.user()?.fullName ?? '')
+      .split(/s+/)
+      .filter(Boolean)
+      .slice(0, 2)
+      .map((word) => word[0].toUpperCase())
+      .join(''),
+  );
   protected readonly greeting = computed(() => {
     const first = this.session.user()?.fullName.split(' ')[0] ?? '';
     return `Bonjour, ${first}`;

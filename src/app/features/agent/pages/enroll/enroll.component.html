@@ -7,9 +7,13 @@
   [attr.aria-valuemax]="steps.length"
   [attr.aria-label]="stepCounter()"
 />
-<div class="flex items-baseline justify-between gap-3">
-  <h2 class="font-display text-lg font-bold text-primary">{{ stepTitle() }}</h2>
-  <span class="shrink-0 text-sm text-ink-muted">{{ stepCounter() }}</span>
+<div class="mt-2 px-1">
+  <p class="font-display text-xs font-semibold tracking-[0.12em] text-sapin uppercase">
+    {{ stepCounter() }}
+  </p>
+  <h2 class="mt-1 text-[1.625rem] leading-tight font-extrabold tracking-tight text-night">
+    {{ stepTitle() }}
+  </h2>
 </div>
 
 @switch (store.step()) {
@@ -60,7 +64,10 @@
   }
 </div>
 
-<div class="mt-1 flex gap-2.5">
+<!-- Sticky action bar above the tab bar (mockup step footer) -->
+<div
+  class="sticky bottom-[5.5rem] z-10 -mx-4 mt-2 flex gap-2.5 border-t border-border-soft bg-surface px-4 py-3 md:bottom-0 md:mx-0 md:rounded-card md:border-0 md:shadow-card"
+>
   @if (store.step() > 0) {
     <button
       appButton

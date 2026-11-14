@@ -4,7 +4,13 @@
       <span panel-aside class="text-sm text-ink-muted">Adhésion payée</span>
       <ul class="divide-y divide-border-soft">
         @for (m of page.items; track m.id) {
-          <li class="flex items-center gap-3 px-4 py-3">
+          <li class="flex min-h-16 items-center gap-3.5 px-4 py-3">
+            <span
+              class="flex size-[2.375rem] shrink-0 items-center justify-center rounded-tile bg-accent-soft text-accent-ink"
+              aria-hidden="true"
+            >
+              <ng-icon name="lucideCreditCard" size="20" />
+            </span>
             <span class="min-w-0 flex-1">
               <span class="block truncate font-semibold">{{ m.fullName }}</span>
               <span class="block text-sm text-ink-muted">
@@ -15,7 +21,7 @@
               [routerLink]="['/agent/inscriptions', m.id, 'carte']"
               appButton
               variant="success"
-              class="min-h-11 px-3.5 text-sm"
+              class="min-h-12 rounded-control px-3.5 text-sm shadow-none"
             >
               Associer la carte
             </a>
@@ -28,7 +34,9 @@
   <app-error-state (retry)="store.toAssign.reload()" />
 }
 
-<a routerLink="/agent/inscrire" appButton variant="outline" [block]="true">Inscrire un marchand</a>
+<a routerLink="/agent/inscrire" appButton variant="outline" [block]="true">
+  <ng-icon name="lucideUserPlus" size="20" aria-hidden="true" />Inscrire un marchand
+</a>
 
 <app-panel title="Mes marchands">
   @if (store.members.value(); as page) {
@@ -46,7 +54,13 @@
     } @else {
       <ul class="divide-y divide-border-soft">
         @for (m of page.items; track m.id) {
-          <li class="flex items-center gap-3 px-4 py-3">
+          <li class="flex min-h-16 items-center gap-3.5 px-4 py-3">
+            <span
+              class="flex size-[2.375rem] shrink-0 items-center justify-center rounded-tile bg-primary-soft text-primary"
+              aria-hidden="true"
+            >
+              <ng-icon name="lucideUser" size="20" />
+            </span>
             <span class="min-w-0 flex-1">
               <span class="block truncate font-semibold">{{ m.fullName }}</span>
               <span class="block text-sm text-ink-muted">

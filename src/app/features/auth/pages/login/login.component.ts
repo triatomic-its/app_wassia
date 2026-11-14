@@ -51,7 +51,7 @@ const ROLE_ICONS: Record<Role, string> = {
       lucideLogIn,
     }),
   ],
-  host: { class: 'flex min-h-dvh flex-col items-center bg-bg px-4 py-8 sm:py-12' },
+  host: { class: 'relative flex min-h-dvh flex-col overflow-hidden bg-night' },
   templateUrl: './login.component.html',
 })
 export class Login implements OnInit {

@@ -9,7 +9,7 @@ import {
   signal,
 } from '@angular/core';
 import { NgIcon, provideIcons } from '@ng-icons/core';
-import { lucideCamera, lucideCircleCheck } from '@ng-icons/lucide';
+import { lucideCamera, lucideCheck } from '@ng-icons/lucide';
 
 /**
  * Photo field (mockup step 2): opens the back camera on phones and emits the picture; the
@@ -20,7 +20,7 @@ import { lucideCamera, lucideCircleCheck } from '@ng-icons/lucide';
   selector: 'app-photo-capture',
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [NgIcon],
-  providers: [provideIcons({ lucideCamera, lucideCircleCheck })],
+  providers: [provideIcons({ lucideCamera, lucideCheck })],
   host: { class: 'block' },
   templateUrl: './photo-capture.component.html',
 })

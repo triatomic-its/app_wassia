@@ -2,6 +2,7 @@ import { ChangeDetectionStrategy, Component, inject } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { NgIcon, provideIcons } from '@ng-icons/core';
 import {
+  lucideCheck,
   lucideCircleAlert,
   lucideCircleCheck,
   lucideCreditCard,
@@ -39,6 +40,7 @@ import { StepBars } from '../../components/step-bars/step-bars.component';
       lucideCircleAlert,
       lucideCreditCard,
       lucideMessageSquareText,
+      lucideCheck,
     }),
   ],
   host: { class: 'flex flex-col gap-3.5 md:mx-auto md:w-full md:max-w-xl' },

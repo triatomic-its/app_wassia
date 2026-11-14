@@ -1,17 +1,19 @@
-<app-photo-capture
-  label="Pièce d'identité (CNI)"
-  [url]="photoUrls().idDocUrl"
-  [busy]="uploads().idDocUrl.busy"
-  [error]="uploads().idDocUrl.error ?? errors().idDocUrl"
-  (picked)="photoPicked.emit({ field: 'idDocUrl', file: $event })"
-/>
-<app-photo-capture
-  label="Photo de l'étalage ou du commerce"
-  [url]="photoUrls().photoUrl"
-  [busy]="uploads().photoUrl.busy"
-  [error]="uploads().photoUrl.error ?? errors().photoUrl"
-  (picked)="photoPicked.emit({ field: 'photoUrl', file: $event })"
-/>
+<div class="grid grid-cols-2 gap-2.5">
+  <app-photo-capture
+    label="Pièce d'identité (CNI)"
+    [url]="photoUrls().idDocUrl"
+    [busy]="uploads().idDocUrl.busy"
+    [error]="uploads().idDocUrl.error ?? errors().idDocUrl"
+    (picked)="photoPicked.emit({ field: 'idDocUrl', file: $event })"
+  />
+  <app-photo-capture
+    label="Photo de l'étalage ou du commerce"
+    [url]="photoUrls().photoUrl"
+    [busy]="uploads().photoUrl.busy"
+    [error]="uploads().photoUrl.error ?? errors().photoUrl"
+    (picked)="photoPicked.emit({ field: 'photoUrl', file: $event })"
+  />
+</div>
 
 <app-field
   label="Numéro de la pièce d'identité"

@@ -19,8 +19,8 @@ export class StepBars {
   protected readonly bars = computed(() =>
     Array.from({ length: this.count() }, (_, i) => {
       if (i < this.current()) return 'bg-sapin';
-      if (i > this.current()) return 'bg-border';
-      return this.currentTone() === 'primary' ? 'bg-primary' : 'bg-sapin';
+      if (i > this.current()) return 'bg-border-soft';
+      return this.currentTone() === 'primary' ? 'bg-night' : 'bg-sapin';
     }),
   );
 }

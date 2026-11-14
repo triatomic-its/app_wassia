@@ -1,43 +1,62 @@
-<div
-  class="flex items-center gap-3 rounded-card border bg-surface p-3"
-  [class.border-danger]="error()"
-  [class.border-border]="!error()"
+<label
+  class="press flex h-full cursor-pointer flex-col overflow-hidden rounded-card bg-surface has-[:focus-visible]:outline-3 has-[:focus-visible]:outline-offset-2 has-[:focus-visible]:outline-accent"
+  [class]="
+    error()
+      ? 'border-2 border-danger'
+      : url()
+        ? 'border-[1.5px] border-border'
+        : 'border-2 border-dashed border-ink-faint bg-surface-alt'
+  "
 >
-  <div
-    class="flex size-16 shrink-0 items-center justify-center overflow-hidden rounded-control bg-neutral-soft text-ink-muted"
+  <span
+    class="relative flex h-[6.75rem] items-center justify-center overflow-hidden bg-primary-soft"
   >
     @if (preview(); as src) {
       <img [src]="src" alt="" class="size-full object-cover" />
     } @else {
-      <ng-icon [name]="url() ? 'lucideCircleCheck' : 'lucideCamera'" size="26" aria-hidden="true" />
+      <span
+        class="flex size-[3.25rem] items-center justify-center rounded-full bg-primary text-white"
+        aria-hidden="true"
+      >
+        <ng-icon name="lucideCamera" size="24" />
+      </span>
     }
-  </div>
-  <div class="min-w-0 flex-1">
-    <div class="font-semibold">{{ label() }}</div>
+    @if (url()) {
+      <span
+        class="absolute top-2 right-2 flex size-6 items-center justify-center rounded-full bg-sapin text-white"
+        aria-hidden="true"
+      >
+        <ng-icon name="lucideCheck" size="14" />
+      </span>
+    }
+  </span>
+  <span class="flex flex-1 flex-col gap-0.5 px-3 py-2.5">
+    <span class="font-display text-[0.875rem] leading-tight font-bold text-ink">{{ label() }}</span>
     @if (busy()) {
-      <div class="text-sm text-ink-muted">Envoi de la photo…</div>
+      <span class="text-xs text-ink-muted">Envoi de la photo…</span>
     } @else if (url()) {
-      <div class="flex items-center gap-1 text-sm font-semibold text-success">
-        <ng-icon name="lucideCircleCheck" size="16" aria-hidden="true" />Photo enregistrée
-      </div>
+      <span class="text-xs font-semibold text-sapin-hover">Photo enregistrée</span>
     } @else if (error()) {
-      <div class="text-sm font-semibold text-danger">{{ error() }}</div>
+      <span class="text-xs font-semibold text-danger">{{ error() }}</span>
     } @else {
-      <div class="text-sm text-ink-muted">Obligatoire</div>
+      <span
+        class="self-start rounded-tile bg-warning-soft px-2 py-0.5 text-[0.71875rem] font-bold text-warning"
+        >Obligatoire</span
+      >
     }
-  </div>
-  <label
-    class="flex min-h-12 cursor-pointer items-center rounded-control border-[1.5px] border-primary px-4 font-display text-sm font-bold text-primary focus-within:outline-3 focus-within:outline-accent hover:bg-info-soft"
-  >
-    {{ actionLabel() }}
-    <input
-      type="file"
-      accept="image/*"
-      capture="environment"
-      class="sr-only"
-      [attr.aria-label]="inputLabel()"
-      [disabled]="busy()"
-      (change)="takePicture($event)"
-    />
-  </label>
-</div>
+    <span
+      class="mt-auto flex min-h-9 items-center pt-1 font-display text-[0.8125rem] font-bold text-sapin"
+    >
+      {{ actionLabel() }}
+    </span>
+  </span>
+  <input
+    type="file"
+    accept="image/*"
+    capture="environment"
+    class="sr-only"
+    [attr.aria-label]="inputLabel()"
+    [disabled]="busy()"
+    (change)="takePicture($event)"
+  />
+</label>

@@ -1,60 +1,84 @@
-<main class="flex w-full max-w-3xl flex-1 flex-col items-center gap-6">
-  <app-brand [width]="220" />
+<!-- Diagonal brand bands (mockup "Connexion") -->
+<span
+  class="skew-band -top-10 -right-32 h-[34rem] w-64 bg-sapin sm:right-[8%]"
+  aria-hidden="true"
+></span>
+<span
+  class="skew-band -top-10 right-[8.5rem] h-[34rem] w-2 bg-accent sm:right-[calc(8%+16.5rem)]"
+  aria-hidden="true"
+></span>
 
-  <section class="w-full rounded-card border border-border bg-surface p-5 sm:p-8">
-    <h1 class="text-2xl font-bold">Connexion</h1>
-
+<div class="relative mx-auto w-full max-w-3xl px-7 pt-[max(3.5rem,env(safe-area-inset-top))] pb-10">
+  <app-brand [onDark]="true" [width]="180" />
+  <h1
+    class="mt-12 font-display text-[2.125rem] leading-[1.08] font-extrabold tracking-tight text-white"
+  >
+    Connexion
+  </h1>
+  <p class="mt-3 max-w-[13rem] text-[0.9375rem] leading-normal text-header-ink sm:max-w-sm">
     @if (auth.kind === 'mock') {
-      <p class="mt-1 text-ink-muted">Version de démonstration : choisissez qui vous êtes.</p>
-      <ul class="mt-5 grid gap-3 sm:grid-cols-2">
-        @for (role of roles; track role) {
-          <li>
-            <button
-              type="button"
-              class="flex min-h-18 w-full items-center gap-4 rounded-card border-[1.5px] border-border bg-surface px-4 py-3 text-left hover:border-primary hover:bg-info-soft disabled:opacity-50"
-              [class.border-sapin]="role === 'AGENT'"
-              [disabled]="busy() !== null"
-              (click)="enter(role)"
-            >
-              <span
-                class="flex size-11 shrink-0 items-center justify-center rounded-full"
-                [class]="role === 'AGENT' ? 'bg-sapin text-white' : 'bg-info-soft text-primary'"
-              >
-                <ng-icon [name]="icons[role]" size="22" aria-hidden="true" />
-              </span>
-              <span class="min-w-0">
-                <span class="block font-display font-bold text-primary">{{ t.roles[role] }}</span>
-                <span class="block text-sm text-ink-muted">
-                  {{ busy() === role ? t.common.loading : t.roleHints[role] }}
-                </span>
-              </span>
-            </button>
-          </li>
-        }
-      </ul>
+      Version de démonstration : choisissez qui vous êtes.
     } @else {
-      <p class="mt-1 text-ink-muted">Utilisez votre compte WASSIA.</p>
-      <button
-        appButton
-        size="xl"
-        type="button"
-        class="mt-5"
-        [block]="true"
-        [disabled]="busy() !== null"
-        (click)="enter()"
-      >
-        <ng-icon name="lucideLogIn" size="24" aria-hidden="true" />Se connecter
-      </button>
+      Utilisez votre compte WASSIA.
     }
+  </p>
+</div>
 
-    <div aria-live="assertive">
-      @if (error()) {
-        <p class="mt-4 rounded-control bg-danger-soft p-3 font-semibold text-danger" role="alert">
-          {{ error() }}
-        </p>
+<main
+  class="relative mx-auto flex w-full max-w-3xl flex-1 flex-col gap-5 rounded-t-sheet bg-surface px-5 pt-7 pb-8 shadow-sheet sm:mb-12 sm:flex-none sm:rounded-sheet sm:px-8"
+>
+  <span
+    class="mx-auto -mt-3 h-[5px] w-10 rounded-pill bg-border sm:hidden"
+    aria-hidden="true"
+  ></span>
+
+  @if (auth.kind === 'mock') {
+    <ul class="grid gap-3 sm:grid-cols-2">
+      @for (role of roles; track role) {
+        <li>
+          <button
+            type="button"
+            class="press flex min-h-[4.5rem] w-full items-center gap-4 rounded-card border-[1.5px] bg-surface px-4 py-3 text-left hover:border-sapin hover:bg-sapin-soft disabled:opacity-50"
+            [class]="role === 'AGENT' ? 'border-sapin' : 'border-border-soft'"
+            [disabled]="busy() !== null"
+            (click)="enter(role)"
+          >
+            <span
+              class="flex size-11 shrink-0 items-center justify-center rounded-tile"
+              [class]="role === 'AGENT' ? 'bg-sapin text-white' : 'bg-primary-soft text-primary'"
+            >
+              <ng-icon [name]="icons[role]" size="22" aria-hidden="true" />
+            </span>
+            <span class="min-w-0">
+              <span class="block font-display font-bold text-ink">{{ t.roles[role] }}</span>
+              <span class="block text-sm text-ink-muted">
+                {{ busy() === role ? t.common.loading : t.roleHints[role] }}
+              </span>
+            </span>
+          </button>
+        </li>
       }
-    </div>
-  </section>
+    </ul>
+  } @else {
+    <button
+      appButton
+      variant="success"
+      type="button"
+      [block]="true"
+      [disabled]="busy() !== null"
+      (click)="enter()"
+    >
+      <ng-icon name="lucideLogIn" size="22" aria-hidden="true" />Se connecter
+    </button>
+  }
 
-  <app-iob-notice class="max-w-xl text-center" />
+  <div aria-live="assertive">
+    @if (error()) {
+      <p class="rounded-control bg-danger-soft px-4 py-3 font-semibold text-danger" role="alert">
+        {{ error() }}
+      </p>
+    }
+  </div>
+
+  <app-iob-notice class="text-center" />
 </main>

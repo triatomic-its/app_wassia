@@ -1,23 +1,26 @@
 <section
-  class="flex flex-col items-center gap-1 rounded-card border border-border bg-surface px-4 py-5 text-center"
+  class="relative flex flex-col items-center gap-1 overflow-hidden rounded-card bg-night px-4 py-6 text-center text-white"
 >
-  <span class="text-sm text-ink-muted">Le marchand paie maintenant</span>
-  <span class="font-display text-[2rem] font-bold text-primary">{{ fee() | fcfa }}</span>
-  <span class="text-sm text-ink-muted">pour l'ouverture de son compte</span>
+  <span class="skew-band -top-6 -right-16 h-[150%] w-28 bg-primary" aria-hidden="true"></span>
+  <span class="relative text-sm text-header-ink">Le marchand paie maintenant</span>
+  <span class="relative font-display text-[2.25rem] leading-tight font-extrabold tracking-tight">{{
+    fee() | fcfa
+  }}</span>
+  <span class="relative text-sm text-header-ink">pour l'ouverture de son compte</span>
 </section>
 
 <fieldset class="flex flex-col gap-2">
-  <legend class="mb-2 text-sm font-semibold">
+  <legend class="mb-2 font-display text-sm font-semibold">
     Comment paie-t-il ? <span class="text-danger" aria-hidden="true">*</span>
   </legend>
   <div class="grid grid-cols-2 gap-2.5">
     @for (c of channels; track c.value) {
       <label
-        class="flex min-h-20 cursor-pointer flex-col items-center justify-center gap-1.5 rounded-card border-[1.5px] px-3 font-display font-bold has-[:focus-visible]:outline-3 has-[:focus-visible]:outline-accent"
+        class="press relative flex min-h-[5.5rem] cursor-pointer flex-col items-center justify-center gap-1.5 rounded-control px-3 font-display text-[0.9375rem] font-bold has-[:focus-visible]:outline-3 has-[:focus-visible]:outline-offset-2 has-[:focus-visible]:outline-accent"
         [class]="
           channel() === c.value
-            ? 'border-sapin bg-success-soft text-success'
-            : 'border-border bg-surface text-primary'
+            ? 'border-2 border-sapin bg-sapin-soft text-sapin-hover'
+            : 'border-[1.5px] border-border bg-surface text-ink'
         "
       >
         <input
@@ -28,6 +31,15 @@
           [attr.value]="c.value"
           [formControl]="form().controls.paymentChannel"
         />
+        <span
+          class="absolute top-2.5 right-2.5 flex size-5 items-center justify-center rounded-full border-2"
+          [class]="channel() === c.value ? 'border-sapin' : 'border-ink-faint'"
+          aria-hidden="true"
+        >
+          @if (channel() === c.value) {
+            <span class="size-2.5 rounded-full bg-sapin"></span>
+          }
+        </span>
         <ng-icon [name]="c.icon" size="28" aria-hidden="true" />{{ c.label }}
       </label>
     }
@@ -60,8 +72,8 @@
 
 @if (channel()) {
   <label
-    class="flex min-h-14 cursor-pointer items-center gap-3 rounded-card border-[1.5px] bg-surface p-3.5 font-semibold"
-    [class]="errors().paymentConfirmed ? 'border-danger' : 'border-border'"
+    class="flex min-h-14 cursor-pointer items-center gap-3 rounded-control border-[1.5px] p-3.5 font-semibold has-[:checked]:border-sapin has-[:checked]:bg-sapin-soft"
+    [class]="errors().paymentConfirmed ? 'border-danger bg-surface' : 'border-border bg-surface'"
   >
     <input
       type="checkbox"

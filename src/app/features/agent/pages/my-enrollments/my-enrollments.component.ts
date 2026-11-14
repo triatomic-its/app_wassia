@@ -1,7 +1,7 @@
 import { ChangeDetectionStrategy, Component, inject } from '@angular/core';
 import { RouterLink } from '@angular/router';
-import { provideIcons } from '@ng-icons/core';
-import { lucideCreditCard, lucideUserPlus } from '@ng-icons/lucide';
+import { NgIcon, provideIcons } from '@ng-icons/core';
+import { lucideCreditCard, lucideUser, lucideUserPlus } from '@ng-icons/lucide';
 import { MEMBER_STATUS_DISPLAY } from '@core/config/member-status.config';
 import { AgentHeader } from '@layout/agent-header.service';
 import { TimeAgoPipe } from '@shared/pipes/time-ago.pipe';
@@ -19,6 +19,7 @@ import { MyEnrollmentsStore } from './my-enrollments.store';
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
     RouterLink,
+    NgIcon,
     TimeAgoPipe,
     ButtonDirective,
     EmptyState,
@@ -27,7 +28,7 @@ import { MyEnrollmentsStore } from './my-enrollments.store';
     Skeleton,
     StatusChip,
   ],
-  providers: [MyEnrollmentsStore, provideIcons({ lucideUserPlus, lucideCreditCard })],
+  providers: [MyEnrollmentsStore, provideIcons({ lucideUserPlus, lucideCreditCard, lucideUser })],
   host: { class: 'flex flex-col gap-3.5 md:mx-auto md:w-full md:max-w-2xl' },
   templateUrl: './my-enrollments.component.html',
 })
