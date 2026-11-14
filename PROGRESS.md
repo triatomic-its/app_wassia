@@ -49,3 +49,14 @@
 - **Vérifié** : lint, 119 tests, build (initial 383 kB).
 - **Reste** : étapes 5–7 de la revue précédente ; appliquer le même rattachement J+1 aux versements (Phase 4) et à la caisse (Phase 6).
 - **Hypothèses ajoutées** : A25.
+
+## Design aligné sur la maquette (2026-11-14)
+
+- **Fait** : écrans repris de la maquette « Wassia — Application » (artefact `MTr7qrzYBU83A3K33XVY8b`), **sans changer la logique** (services, stores, routes, textes, ids et specs identiques).
+  - Tokens (`styles.css`) : neutres de la maquette (`#F2F4F7`, `#101828`, `#475467`, `#D0D5DD`, `#EAECF0`), tuiles douces (vert, bleu, or, bandeau 16 h), couleurs back-office, rayons (champ 14, bouton 16, carte 20, panneau 8), ombres, Poppins 800 et Open Sans 700, utilitaires `press`, `skew-band`, `bg-scan-radial`.
+  - Composants partagés : boutons 56 px avec ombre verte, champs 54 px avec halo vert, cartes à ombre légère, raccourcis avec tuile d'icône et « Voir › », viseur de scan sombre à coins verts.
+  - Agent : accueil avec en-tête bleu nuit à bande oblique, avatar doré et carte résumé qui le chevauche (`AgentHeader.useHero()`, présentation seule) ; écrans d'étape avec barre blanche, retour vert et titre centré ; barre d'onglets avec bouton « Scanner » doré ; inscription (sur-titre « Étape x sur 3 », tuiles photo, choix espèces/Wave, barre d'actions collante) ; associer la carte et « Carte activée ».
+  - Connexion : fond bleu nuit à bandes vert et or, feuille blanche en bas.
+  - Back-office : menu bleu marine repliable (256 px / 84 px, actif à liseré doré), barre haute blanche avec avatar et rôle, en-têtes de tableau en majuscules.
+- **Vérifié** : lint, 119 tests, build (initial 395 kB) ; captures à 390 px (connexion, accueil, inscription, mes inscriptions, associer la carte) et 1440 px (connexion, back-office).
+- **Reste** : les écrans back-office de la maquette (Supervision, Caisse…) seront construits dans ce style à leurs phases.

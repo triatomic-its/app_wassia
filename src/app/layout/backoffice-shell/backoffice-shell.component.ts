@@ -27,7 +27,7 @@ import { OfflineBanner } from '../offline-banner/offline-banner.component';
 
 /**
  * Back-office layout (DG, chefs, comptable, caissière, gestionnaire):
- * fixed navy side menu from `lg` (1024 px), slide-in drawer below.
+ * collapsible navy side menu from `lg` (1024 px), slide-in drawer below, white top bar.
  */
 @Component({
   selector: 'app-backoffice-shell',
@@ -57,18 +57,28 @@ import { OfflineBanner } from '../offline-banner/offline-banner.component';
       lucideLogOut,
     }),
   ],
-  host: { class: 'flex min-h-dvh bg-bg', '(document:keydown.escape)': 'closeDrawer()' },
+  host: { class: 'flex min-h-dvh bg-bo-bg', '(document:keydown.escape)': 'closeDrawer()' },
   templateUrl: './backoffice-shell.component.html',
 })
 export class BackofficeShell {
   protected readonly session = inject(SessionStore);
   protected readonly t = FR;
   protected readonly drawerOpen = signal(false);
+  /** Desktop side menu folded to icons only (presentation). */
+  protected readonly collapsed = signal(false);
 
   protected readonly items = computed(() => {
     const perms = this.session.permissions();
     return BACKOFFICE_NAV.filter((item) => perms.has(item.permission));
   });
+  protected readonly initials = computed(() =>
+    (this.session.user()?.fullName ?? '')
+      .split(/s+/)
+      .filter(Boolean)
+      .slice(0, 2)
+      .map((word) => word[0].toUpperCase())
+      .join(''),
+  );
   protected readonly roleLabel = computed(() => {
     const role = this.session.role();
     return role ? FR.roles[role] : '';
