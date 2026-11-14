@@ -1,8 +1,8 @@
-import { HttpParams } from '@angular/common/http';
-import { ApiError } from '../core/api/error.model';
-import { DEFAULT_PAGE_SIZE, MAX_PAGE_SIZE } from '../core/api/pagination';
-import { Permission } from '../core/config/permissions.config';
-import { Page, User } from '../core/models';
+import { HttpHeaders, HttpParams } from '@angular/common/http';
+import { ApiError } from '@core/api/error.model';
+import { DEFAULT_PAGE_SIZE, MAX_PAGE_SIZE } from '@core/api/pagination';
+import { Permission } from '@core/config/permissions.config';
+import { Page, User } from '@core/models';
 import { MockDb } from './db';
 
 /** Error thrown by a handler; turned into an HTTP error response with the standard body. */
@@ -29,11 +29,18 @@ export interface MockContext {
   path: string;
   params: Record<string, string>;
   query: HttpParams;
+  headers: HttpHeaders;
   body: unknown;
   user: User | null;
   permissions: ReadonlySet<Permission>;
   db: MockDb;
   now: Date;
+}
+
+/** Logged-in user of a request; every route whose `access` is not `public` has one. */
+export function requireUser(ctx: MockContext): User {
+  if (!ctx.user) throw fail(401, 'UNAUTHENTICATED', 'Votre session a expiré. Reconnectez-vous.');
+  return ctx.user;
 }
 
 export interface MockRoute {

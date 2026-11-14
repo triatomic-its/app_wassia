@@ -1,0 +1,83 @@
+<section
+  class="flex flex-col items-center gap-1 rounded-card border border-border bg-surface px-4 py-5 text-center"
+>
+  <span class="text-sm text-ink-muted">Le marchand paie maintenant</span>
+  <span class="font-display text-[2rem] font-bold text-primary">{{ fee() | fcfa }}</span>
+  <span class="text-sm text-ink-muted">pour l'ouverture de son compte</span>
+</section>
+
+<fieldset class="flex flex-col gap-2">
+  <legend class="mb-2 text-sm font-semibold">
+    Comment paie-t-il ? <span class="text-danger" aria-hidden="true">*</span>
+  </legend>
+  <div class="grid grid-cols-2 gap-2.5">
+    @for (c of channels; track c.value) {
+      <label
+        class="flex min-h-20 cursor-pointer flex-col items-center justify-center gap-1.5 rounded-card border-[1.5px] px-3 font-display font-bold has-[:focus-visible]:outline-3 has-[:focus-visible]:outline-accent"
+        [class]="
+          channel() === c.value
+            ? 'border-sapin bg-success-soft text-success'
+            : 'border-border bg-surface text-primary'
+        "
+      >
+        <input
+          type="radio"
+          name="en-channel"
+          class="sr-only"
+          [value]="c.value"
+          [attr.value]="c.value"
+          [formControl]="form().controls.paymentChannel"
+        />
+        <ng-icon [name]="c.icon" size="28" aria-hidden="true" />{{ c.label }}
+      </label>
+    }
+  </div>
+  @if (errors().paymentChannel) {
+    <p class="text-sm font-semibold text-danger" role="alert">{{ errors().paymentChannel }}</p>
+  }
+</fieldset>
+
+@if (channel() === 'WAVE') {
+  <app-alert tone="info" [announce]="false">
+    Le marchand envoie {{ fee() | fcfa }} par Wave au numéro marchand WASSIA, puis vous montre la
+    confirmation sur son téléphone.
+  </app-alert>
+  <app-field
+    label="Référence Wave (facultatif)"
+    for="en-ref"
+    hint="Elle aide le comptable à retrouver le paiement."
+  >
+    <input
+      id="en-ref"
+      appInput
+      autocapitalize="characters"
+      autocomplete="off"
+      [formControl]="form().controls.paymentRef"
+      aria-describedby="en-ref-msg"
+    />
+  </app-field>
+}
+
+@if (channel()) {
+  <label
+    class="flex min-h-14 cursor-pointer items-center gap-3 rounded-card border-[1.5px] bg-surface p-3.5 font-semibold"
+    [class]="errors().paymentConfirmed ? 'border-danger' : 'border-border'"
+  >
+    <input
+      type="checkbox"
+      class="size-6 shrink-0 accent-sapin"
+      [formControl]="form().controls.paymentConfirmed"
+    />
+    {{ confirmationLabel() }}
+  </label>
+  @if (errors().paymentConfirmed) {
+    <p class="-mt-1.5 text-sm font-semibold text-danger" role="alert">
+      {{ errors().paymentConfirmed }}
+    </p>
+  }
+  @if (channel() === 'CASH') {
+    <p class="text-sm text-ink-muted">
+      Cet argent s'ajoute à ce que vous remettez à la caissière ce soir.
+    </p>
+  }
+}

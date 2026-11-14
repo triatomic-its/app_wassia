@@ -18,14 +18,14 @@ export interface AgentToday {
   cardsToAssign: number;
 }
 
-/** `GET /members/phone-check?phone=` */
+/** `POST /members/phone-check { phone }` */
 export interface PhoneCheck {
   available: boolean;
   /** Masked name of the existing merchant when the number is already used. */
   existingName?: string;
 }
 
-/** `GET /cards/lookup?qr=` or `?number=` */
+/** `POST /cards/lookup { qrToken }` (or `{ number }` for back-office card management) */
 export interface CardLookup {
   card: Pick<Card, 'id' | 'printedNumber' | 'status'>;
 }

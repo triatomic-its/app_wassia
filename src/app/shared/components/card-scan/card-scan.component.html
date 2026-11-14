@@ -1,0 +1,44 @@
+@if (scanning()) {
+  <div class="relative overflow-hidden rounded-card bg-night">
+    <video #video class="aspect-square w-full object-cover" playsinline muted></video>
+    <div
+      class="pointer-events-none absolute inset-[18%] rounded-card border-4 border-accent"
+      aria-hidden="true"
+    ></div>
+    <button
+      appButton
+      variant="accent"
+      type="button"
+      class="absolute right-3 bottom-3"
+      (click)="stop()"
+    >
+      <ng-icon name="lucideX" size="20" aria-hidden="true" />Arrêter
+    </button>
+  </div>
+  <p class="text-center text-sm text-ink-muted" aria-live="polite">
+    Placez le code QR de la carte dans le cadre jaune.
+  </p>
+} @else {
+  <button
+    appButton
+    variant="success"
+    size="xl"
+    type="button"
+    [block]="true"
+    [disabled]="disabled()"
+    (click)="start()"
+  >
+    <ng-icon name="lucideScanQrCode" size="28" aria-hidden="true" />{{ scanLabel() }}
+  </button>
+}
+<canvas #canvas class="hidden"></canvas>
+
+@if (cameraError()) {
+  <p
+    class="flex items-start gap-3 rounded-control bg-warning-soft p-3.5 text-sm text-warning"
+    role="alert"
+  >
+    <ng-icon name="lucideCameraOff" size="22" class="shrink-0" aria-hidden="true" />
+    {{ cameraError() }}
+  </p>
+}

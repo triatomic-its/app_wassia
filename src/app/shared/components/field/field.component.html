@@ -1,0 +1,14 @@
+<label [attr.for]="for()" class="text-sm font-semibold text-ink">
+  {{ label() }}
+  @if (required()) {
+    <span class="text-danger" aria-hidden="true">*</span>
+  }
+</label>
+<ng-content />
+@if (error()) {
+  <p [id]="for() + '-msg'" class="text-sm font-semibold text-danger" role="alert">
+    {{ error() }}
+  </p>
+} @else if (hint()) {
+  <p [id]="for() + '-msg'" class="text-sm text-ink-muted">{{ hint() }}</p>
+}

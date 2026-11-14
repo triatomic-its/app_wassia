@@ -5,21 +5,49 @@ One responsive Angular 22 PWA for everyone (decision of 2026-11-09):
 - **Back office** `/app/...` — DG, Directeur adjoint, Chef d'agence, Gestionnaire, Comptable, Caissière. Fixed navy side menu from 1024 px, drawer below.
 - **Agent** `/agent/...` — field agents on phone (bottom tab bar) and tablet (left rail).
 - **Public QR page** `/pay/:token` — no login, member name masked.
-- **Dev only** `/dev/styleguide` — every `shared/ui` component and state, plus a role switcher. Not bundled in production (`ngDevMode` check in `app.routes.ts`).
+- **Dev only** `/dev/styleguide` — every `shared/components` component and state, plus a role switcher. Not bundled in production (`ngDevMode` check in `app.routes.ts`).
 
 ## Layers
 
-| Folder                                           | Role                                                                                                           | May import       |
-| ------------------------------------------------ | -------------------------------------------------------------------------------------------------------------- | ---------------- |
-| `core/config`                                    | Single sources of truth: permission matrix, workflow transition tables, loan grid, navigation, settings, flags | `core/models`    |
-| `core/models`                                    | Shared TypeScript types                                                                                        | —                |
-| `core/auth`                                      | `SessionStore` (current user in memory), `permissionGuard`, `homeRedirect`                                     | `core/config`    |
-| `core/layout`                                    | `BackofficeShell`, `AgentShell`, brand, IOB notice, offline banner                                             | `core`, `shared` |
-| `shared/ui`, `shared/pipes`, `shared/directives` | Presentational building blocks (`*appCan`, `fcfa`, `abidjanDate`, `maskName`)                                  | `core`           |
-| `features/*`                                     | Lazy-loaded screens; never import another feature                                                              | `core`, `shared` |
-| `mocks/`                                         | Fake back end (Phase 1); removable without touching anything else                                              | everything       |
+| Folder       | Role                                                                                                                                                               | May import                 |
+| ------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------ | -------------------------- |
+| `core/`      | Singletons, no visual component: `api/`, `auth/` (session, guards), `interceptors/`, `services/` (toast, clock, network), `config/`, `domain/`, `i18n/`, `models/` | `core` only                |
+| `shared/`    | Generic building blocks, no business rule: `components/`, `directives/`, `pipes/`, `services/` (confirm), `utils/`                                                 | `core`                     |
+| `layout/`    | `AgentShell`, `BackofficeShell`, IOB notice, offline banner, `AgentHeader` (top-bar state set by agent screens)                                                    | `core`, `shared`           |
+| `features/*` | Lazy-loaded screens; never import another feature                                                                                                                  | `core`, `shared`, `layout` |
+| `mocks/`     | Fake back end; removable without touching anything else; only `app.config.ts` imports it                                                                           | everything                 |
 
-ESLint forbids importing `mocks/` from anywhere except `mocks/` and `app.config.ts`. `core/auth/auth.mock.ts` (demo login) lives in core but never imports `mocks/`.
+These rules are enforced by `no-restricted-imports` in `eslint.config.js`. Cross-area imports use the aliases `@core/*`, `@shared/*`, `@layout/*`, `@features/*`, `@env/*` (`tsconfig.json`); `../../../` is forbidden, relative imports stay for files of the same area.
+
+Pure business rules shared by the screens and the fake server live in `core/domain` (enrollment validation, membership fee, 16:00 cut-off countdown) and pure formatters in `core/i18n/format` (FCFA, Abidjan dates, masked names, "il y a…"); pipes in `shared/pipes` only wrap them.
+
+### File naming
+
+- Component: folder `<name>/` with `<name>.component.ts` + `<name>.component.html` (+ `.component.spec.ts`). No inline `template:` / `styles:` (only test host components inside `*.spec.ts`), no style file (Tailwind classes only).
+- Other suffixes: `.service.ts`, `.store.ts`, `.guard.ts`, `.interceptor.ts`, `.pipe.ts`, `.directive.ts`, `.model.ts`, `.routes.ts`. Class names and selectors keep the short form (`EnrollPage`, `app-enroll-page`).
+
+### Inside a feature (see `features/agent`)
+
+| Sub-folder           | Contains                                                                                                                                        | Rule                                                                                                        |
+| -------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------- |
+| `pages/<page>/`      | Routed component + its page-scoped `*.store.ts` (signals + RxJS) and helpers used only by it (e.g. `enroll-steps.ts`, `enroll-error.mapper.ts`) | Store provided by the page, so state dies with it; no `subscribe()`, HTTP or business rule in the component |
+| `components/`        | Presentational components: `input()` / `output()` only, no service                                                                              | Never import from `pages/`                                                                                  |
+| `services/`          | Typed HTTP API of the feature (`agent-api.service.ts`)                                                                                          | Only path to `ApiClient`                                                                                    |
+| `models/`            | Types and form factories shared by the feature's pages and components (`enrollment-form.model.ts`)                                              | No Angular service                                                                                          |
+| `<feature>.store.ts` | Only when state is shared between several pages of the feature                                                                                  | —                                                                                                           |
+
+Async actions in stores: `switchMap` for look-ups (only the latest answer counts), `exhaustMap` for submissions (double taps ignored), always `takeUntilDestroyed`.
+
+`core/auth/auth.mock.ts` (demo login) lives in core but never imports `mocks/`.
+
+### Deviations from the generic reviewer guide (`wassia-code-reviewer.md`)
+
+| Guide                                          | Here                                                               | Why                                                                          |
+| ---------------------------------------------- | ------------------------------------------------------------------ | ---------------------------------------------------------------------------- |
+| `.component.scss` for every component          | No style file                                                      | Tailwind CSS-first with design tokens (CLAUDE.md §3)                         |
+| Business models inside each feature            | API types in `core/models`, shared rules in `core/domain`          | They are the API contract, used by several features and by the fake back end |
+| `Page<T>`, `ApiError` in `shared/models`       | `core/api/pagination.ts`, `core/api/error.model.ts`                | Used by `core` (API client, interceptors), and `core` imports nothing else   |
+| JWT + `token.service.ts` + refresh interceptor | OIDC (Keycloak, code + PKCE) behind `AuthService`; token in memory | CLAUDE.md §3 and §11                                                         |
 
 ## Fake back end (development only)
 

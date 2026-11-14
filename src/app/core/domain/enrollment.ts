@@ -8,6 +8,9 @@
  * Côte d'Ivoire mobile numbers: 10 digits, starting with 01, 05 or 07 (since 2021).
  */
 
+import { formatFcfa } from '../i18n/format/fcfa';
+import { Fcfa } from '../models';
+
 export type MembershipChannel = 'CASH' | 'WAVE';
 
 export interface EnrollmentInput {
@@ -69,26 +72,26 @@ export function validateDocuments(input: Partial<EnrollmentInput>): EnrollmentEr
   return errors;
 }
 
-/** Step 3 — the 1 000 F membership fee, received on the spot. */
-export function validatePayment(input: Partial<EnrollmentInput>): EnrollmentErrors {
+/** Step 3 — the membership fee (1 000 F by default), received on the spot. */
+export function validatePayment(input: Partial<EnrollmentInput>, fee: Fcfa): EnrollmentErrors {
   const errors: EnrollmentErrors = {};
   if (input.paymentChannel !== 'CASH' && input.paymentChannel !== 'WAVE') {
     errors.paymentChannel = 'Choisissez : espèces ou Wave.';
   } else if (input.paymentConfirmed !== true) {
     errors.paymentConfirmed =
       input.paymentChannel === 'CASH'
-        ? 'Confirmez que vous avez reçu les 1 000 F.'
+        ? `Confirmez que vous avez reçu les ${formatFcfa(fee)}.`
         : 'Confirmez que vous avez vu la confirmation du paiement Wave.';
   }
   return errors;
 }
 
 /** Everything required to register the member (the card is associated afterwards). */
-export function validateEnrollment(input: Partial<EnrollmentInput>): EnrollmentErrors {
+export function validateEnrollment(input: Partial<EnrollmentInput>, fee: Fcfa): EnrollmentErrors {
   return {
     ...validateIdentity(input),
     ...validateDocuments(input),
-    ...validatePayment(input),
+    ...validatePayment(input, fee),
   };
 }
 

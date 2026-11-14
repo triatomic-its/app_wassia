@@ -1,4 +1,4 @@
-import { SmsTemplate } from '../../core/models';
+import { SmsTemplate } from '@core/models';
 
 /** Fictional names for demo data. Any resemblance to real people is coincidental. */
 export const FIRST_NAMES = [

@@ -1,5 +1,5 @@
-import { computeLoanSchedule } from '../../core/config/loan.config';
-import { billettageTotal } from '../../core/domain/cash';
+import { computeLoanSchedule } from '@core/config/loan.config';
+import { billettageTotal } from '@core/domain/cash';
 import { seedMockData } from './seed';
 
 const NOW = new Date('2026-11-09T14:30:00Z');

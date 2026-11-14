@@ -1,0 +1,7 @@
+<div class="text-ink-muted" [class.text-sm]="!compact()" [class.text-xs]="compact()">
+  {{ label() }}
+</div>
+<div [class]="valueClass()">{{ value() }}</div>
+@if (hint()) {
+  <div class="mt-0.5 text-xs text-ink-muted">{{ hint() }}</div>
+}

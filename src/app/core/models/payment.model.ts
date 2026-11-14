@@ -25,6 +25,8 @@ export interface Payment {
   agentId?: string;
   cashierId?: string;
   createdAt: IsoDateTime;
+  /** Business day `YYYY-MM-DD` (Abidjan); entries made after the 16:00 cut-off go to J+1. */
+  businessDate?: string;
 }
 
 export interface ReconciliationItem {

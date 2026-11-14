@@ -4,7 +4,9 @@ import {
   hasErrors,
   phoneDigits,
   validateEnrollment,
-} from '../core/domain/enrollment';
+} from '@core/domain/enrollment';
+import { businessDateOf } from '@core/domain/cash-cutoff';
+import { findMembershipType, membershipFeeOf } from '@core/domain/membership';
 import {
   AgentToday,
   AppNotification,
@@ -16,7 +18,7 @@ import {
   PaymentChannel,
   SmsTemplate,
   User,
-} from '../core/models';
+} from '@core/models';
 import { fail } from './http';
 import { MockData } from './seed/seed';
 
@@ -89,10 +91,6 @@ function nextAccountNumber(data: MockData): string {
   return `CPT-${String(max + 1).padStart(6, '0')}`;
 }
 
-export function membershipFee(data: MockData): number {
-  return data.paymentTypes.find((t) => t.code === 'MEMBERSHIP')?.defaultAmount ?? 1000;
-}
-
 export function findCard(
   data: MockData,
   by: { qr?: string | null; number?: string | null },
@@ -111,14 +109,24 @@ export function findCard(
  * Registers a merchant (client rule, 2026-11-10): the agent has received the 1 000 F on the spot
  * (cash, or Wave confirmed by the agent). The member, the payment and its ledger entry are written
  * together; the member is CARD_TO_ASSIGN until the agent scans a blank card (assignCard).
+ *
+ * - Idempotent: replaying the same `Idempotency-Key` (same agent) returns the first result and
+ *   creates nothing (lost response + retry never ends in "number already registered").
+ * - From the cash cut-off (16:00) on, the payment and its entry belong to the next business day.
  */
 export function enrollMember(
   data: MockData,
   agent: User,
   input: Partial<EnrollmentInput>,
   now: Date,
+  idempotencyKey?: string,
 ): EnrollmentResult {
-  const errors = validateEnrollment(input);
+  const replayKey = idempotencyKey?.trim() ? `${agent.id}:${idempotencyKey.trim()}` : undefined;
+  const previous = replayKey ? replayEnrollment(data, replayKey) : undefined;
+  if (previous) return previous;
+
+  const fee = membershipFeeOf(data.paymentTypes);
+  const errors = validateEnrollment(input, fee);
   if (hasErrors(errors)) {
     throw fail(
       422,
@@ -131,19 +139,25 @@ export function enrollMember(
       ),
     );
   }
-  if (findByPhone(data, input.phone!)) {
+  const { fullName = '', phone = '', market = '', trade = '', idNumber = '' } = input;
+  const channel = input.paymentChannel;
+  if (!channel) throw fail(422, 'PAYMENT_CHANNEL_REQUIRED', 'Choisissez : espèces ou Wave.');
+  if (findByPhone(data, phone)) {
     throw fail(409, 'PHONE_ALREADY_USED', 'Ce numéro est déjà enregistré pour un autre marchand.');
   }
+  const type = findMembershipType(data.paymentTypes);
+  if (!type)
+    throw fail(500, 'MEMBERSHIP_TYPE_MISSING', 'Le type de paiement « Adhésion » est introuvable.');
   const at = now.toISOString();
-  const channel = input.paymentChannel!;
+  const businessDate = businessDateOf(now, data.settings.cashCutoffTime);
   const member: Member = {
     id: newId('m'),
-    fullName: input.fullName!.trim(),
-    phone: formatPhone(input.phone!),
-    market: input.market!,
-    trade: input.trade!.trim(),
+    fullName: fullName.trim(),
+    phone: formatPhone(phone),
+    market,
+    trade: trade.trim(),
     stall: input.stall?.trim() || undefined,
-    idNumber: input.idNumber!.trim(),
+    idNumber: idNumber.trim(),
     idDocUrl: input.idDocUrl,
     photoUrl: input.photoUrl,
     agentId: agent.id,
@@ -154,17 +168,17 @@ export function enrollMember(
     createdAt: at,
     updatedAt: at,
   };
-  const type = data.paymentTypes.find((t) => t.code === 'MEMBERSHIP')!;
   const payment: Payment = {
     id: newId('p'),
     memberId: member.id,
     typeId: type.id,
-    amount: membershipFee(data),
+    amount: fee,
     channel,
     status: 'CONFIRMED',
     externalRef: input.paymentRef?.trim() || newId(channel === 'WAVE' ? 'WV' : 'ESP'),
     agentId: agent.id,
     createdAt: at,
+    businessDate,
   };
 
   data.members.push(member);
@@ -172,6 +186,7 @@ export function enrollMember(
   data.ledger.push({
     id: newId('e'),
     date: at,
+    businessDate,
     journal: channel === 'CASH' ? 'CAISSE' : 'MOBILE',
     label: `Adhésion ${member.fullName}`,
     lines: [
@@ -182,7 +197,16 @@ export function enrollMember(
     sourcePaymentId: payment.id,
   });
   audit(data, agent, 'ENROLL_MEMBER', 'Member', member.id, now);
+  if (replayKey) data.idempotency[replayKey] = { memberId: member.id, paymentId: payment.id };
   return { member, payment };
+}
+
+function replayEnrollment(data: MockData, key: string): EnrollmentResult | undefined {
+  const ids = data.idempotency[key];
+  if (!ids) return undefined;
+  const member = data.members.find((m) => m.id === ids.memberId);
+  const payment = data.payments.find((p) => p.id === ids.paymentId);
+  return member && payment ? { member, payment } : undefined;
 }
 
 /**

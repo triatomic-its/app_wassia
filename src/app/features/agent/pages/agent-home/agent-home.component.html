@@ -1,0 +1,94 @@
+@if (store.today.error()) {
+  <app-error-state message="Impossible de charger votre journée." (retry)="store.today.reload()" />
+} @else if (store.today.value(); as day) {
+  <div class="grid gap-3.5 md:grid-cols-2">
+    <!-- Countdown to the cash cut-off -->
+    <section
+      class="flex flex-col gap-2.5 rounded-card border border-border bg-surface p-4"
+      aria-live="polite"
+    >
+      <div class="flex items-center justify-between gap-3">
+        <h2 class="text-[0.9375rem] font-bold">Clôture de caisse à {{ store.cutoffLabel() }}</h2>
+        <span
+          class="font-display text-[0.9375rem] font-bold"
+          [class]="store.countdown().locked ? 'text-danger' : 'text-sapin'"
+        >
+          {{ store.countdown().label }}
+        </span>
+      </div>
+      <div class="h-2 overflow-hidden rounded bg-border-soft" aria-hidden="true">
+        <div
+          class="h-full"
+          [class]="store.countdown().locked ? 'bg-danger' : 'bg-sapin'"
+          [style.width.%]="store.countdown().progress"
+        ></div>
+      </div>
+      <p class="text-sm leading-normal text-ink-muted">
+        @if (store.countdown().locked) {
+          La caisse est fermée. Vos saisies comptent pour demain.
+        } @else {
+          Après {{ store.cutoffLabel() }}, vos saisies passent au jour suivant.
+        }
+      </p>
+    </section>
+
+    <section class="grid grid-cols-[1.4fr_1fr_1fr] gap-2.5" aria-label="Ma journée">
+      <app-stat-card label="Collecté aujourd'hui" [value]="day.collected | fcfa" [compact]="true" />
+      <app-stat-card label="Versements" [value]="day.deposits" [compact]="true" />
+      <app-stat-card label="Inscrits" [value]="day.enrolled" [compact]="true" />
+    </section>
+  </div>
+
+  <a routerLink="/agent/scanner" appButton variant="success" size="xl" class="justify-start gap-4">
+    <ng-icon name="lucideScanLine" size="30" aria-hidden="true" />Scanner une carte
+  </a>
+
+  <div class="grid grid-cols-2 gap-2.5">
+    <a
+      routerLink="/agent/inscrire"
+      appButton
+      variant="outline"
+      size="xl"
+      class="min-h-21 flex-col items-start justify-center gap-1.5 px-3 text-[0.9375rem] leading-tight"
+    >
+      <ng-icon name="lucideUserPlus" size="24" aria-hidden="true" />Inscrire un marchand
+    </a>
+    <a
+      routerLink="/agent/collecte"
+      appButton
+      variant="outline"
+      size="xl"
+      class="min-h-21 flex-col items-start justify-center gap-1.5 px-3 text-[0.9375rem] leading-tight"
+    >
+      <ng-icon name="lucideRoute" size="24" aria-hidden="true" />Tournée de collecte
+    </a>
+  </div>
+
+  @if (day.cardsToAssign > 0) {
+    <app-link-tile link="/agent/inscriptions" tone="info" icon="lucideCreditCard">
+      {{ store.cardsToAssignLabel() }}
+    </app-link-tile>
+  }
+  @if (day.lateMembers > 0) {
+    <app-link-tile link="/agent/collecte" tone="warning" icon="lucideTriangleAlert">
+      {{ store.lateMembersLabel() }}
+    </app-link-tile>
+  }
+
+  <div class="grid gap-2.5 md:grid-cols-2">
+    <div
+      class="flex items-center justify-between gap-2.5 rounded-control border border-border bg-surface p-3.5 text-sm"
+    >
+      <span class="text-ink-muted">À remettre à la caissière</span>
+      <span class="font-display text-base font-bold text-primary">{{ day.toRemit | fcfa }}</span>
+    </div>
+    <app-link-tile link="/agent/inscriptions">Mes inscriptions</app-link-tile>
+  </div>
+} @else {
+  <div class="rounded-card border border-border bg-surface p-4">
+    <app-skeleton [lines]="3" />
+  </div>
+  <div class="rounded-card border border-border bg-surface p-4">
+    <app-skeleton [lines]="2" />
+  </div>
+}

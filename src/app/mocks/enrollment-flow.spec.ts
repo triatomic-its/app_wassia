@@ -7,10 +7,11 @@ import {
 import { TestBed } from '@angular/core/testing';
 import { provideRouter } from '@angular/router';
 import { firstValueFrom } from 'rxjs';
-import { authInterceptor } from '../core/api/interceptors';
-import { MockAuthService } from '../core/auth/auth.mock';
-import { AuthService } from '../core/auth/auth.service';
-import { AgentToday, CardAssignResult, EnrollmentResult, PhoneCheck } from '../core/models';
+import { authInterceptor } from '@core/interceptors/auth.interceptor';
+import { MockAuthService } from '@core/auth/auth.mock';
+import { AuthService } from '@core/auth/auth.service';
+import { AgentToday, CardAssignResult, EnrollmentResult, PhoneCheck } from '@core/models';
+import { ClockService } from '@core/services/clock.service';
 import { MockControl } from './control';
 import { MockDb } from './db';
 import { mockBackendInterceptor } from './mock-backend.interceptor';
@@ -102,8 +103,8 @@ describe('agent enrollment (mock server): pay on the spot, then scan the card', 
       http.post<EnrollmentResult>('/api/v1/members', MERCHANT),
     );
     const lookup = await firstValueFrom(
-      http.get<{ card: { printedNumber: string; status: string } }>('/api/v1/cards/lookup', {
-        params: { qr: blank.qrToken },
+      http.post<{ card: { printedNumber: string; status: string } }>('/api/v1/cards/lookup', {
+        qrToken: blank.qrToken,
       }),
     );
     expect(lookup.card).toMatchObject({ printedNumber: blank.printedNumber, status: 'UNASSIGNED' });
@@ -197,13 +198,80 @@ describe('agent enrollment (mock server): pay on the spot, then scan the card', 
     const { http, db } = await setup();
     const existing = db.snapshot.members[40];
     const check = await firstValueFrom(
-      http.get<PhoneCheck>('/api/v1/members/phone-check', { params: { phone: existing.phone } }),
+      http.post<PhoneCheck>('/api/v1/members/phone-check', { phone: existing.phone }),
     );
     expect(check.available).toBe(false);
     const err = await errorOf(
       firstValueFrom(http.post('/api/v1/members', { ...MERCHANT, phone: existing.phone })),
     );
     expect(err.error.code).toBe('PHONE_ALREADY_USED');
+  });
+
+  it('books a registration made after 16:00 on the next business day (J+1)', async () => {
+    const { http, db } = await setup();
+    const at17 = new Date();
+    at17.setUTCHours(17, 0, 0, 0);
+    TestBed.inject(ClockService).setOffset(at17.getTime() - Date.now());
+    const { payment } = await firstValueFrom(
+      http.post<EnrollmentResult>('/api/v1/members', MERCHANT),
+    );
+    const tomorrow = new Date(at17.getTime() + 24 * 3_600_000).toISOString().slice(0, 10);
+    expect(payment.businessDate).toBe(tomorrow);
+    const entry = db.snapshot.ledger.find((e) => e.sourcePaymentId === payment.id);
+    expect(entry?.businessDate).toBe(tomorrow);
+  });
+
+  it('keeps today as business day before 16:00', async () => {
+    const { http } = await setup();
+    const at10 = new Date();
+    at10.setUTCHours(10, 0, 0, 0);
+    TestBed.inject(ClockService).setOffset(at10.getTime() - Date.now());
+    const { payment } = await firstValueFrom(
+      http.post<EnrollmentResult>('/api/v1/members', MERCHANT),
+    );
+    expect(payment.businessDate).toBe(at10.toISOString().slice(0, 10));
+  });
+
+  it('replays the same Idempotency-Key without creating the merchant twice', async () => {
+    const { http, db } = await setup();
+    const members = db.snapshot.members.length;
+    const payments = db.snapshot.payments.length;
+    const headers = { 'Idempotency-Key': 'retry-123' };
+    const first = await firstValueFrom(
+      http.post<EnrollmentResult>('/api/v1/members', MERCHANT, { headers }),
+    );
+    const again = await firstValueFrom(
+      http.post<EnrollmentResult>('/api/v1/members', MERCHANT, { headers }),
+    );
+    expect(again.member.id).toBe(first.member.id);
+    expect(again.payment.id).toBe(first.payment.id);
+    expect(db.snapshot.members.length).toBe(members + 1);
+    expect(db.snapshot.payments.length).toBe(payments + 1);
+  });
+
+  it('still refuses a duplicate phone sent with another key (409)', async () => {
+    const { http } = await setup();
+    await firstValueFrom(
+      http.post('/api/v1/members', MERCHANT, { headers: { 'Idempotency-Key': 'k-1' } }),
+    );
+    const err = await errorOf(
+      firstValueFrom(
+        http.post('/api/v1/members', MERCHANT, { headers: { 'Idempotency-Key': 'k-2' } }),
+      ),
+    );
+    expect(err.error.code).toBe('PHONE_ALREADY_USED');
+  });
+
+  it('no longer answers the phone check or card lookup by GET (data stays out of URLs)', async () => {
+    const { http, blank } = await setup();
+    const phone = await errorOf(
+      firstValueFrom(http.get('/api/v1/members/phone-check', { params: { phone: '0700000000' } })),
+    );
+    expect(phone.status).not.toBe(200);
+    const card = await errorOf(
+      firstValueFrom(http.get('/api/v1/cards/lookup', { params: { qr: blank.qrToken } })),
+    );
+    expect(card.status).not.toBe(200);
   });
 
   it('refuses enrollment to roles other than agents (403)', async () => {

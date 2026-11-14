@@ -1,8 +1,8 @@
-import { formatCardNumber, CARD_BATCH_SIZE } from '../../core/config/cards.config';
-import { computeLoanSchedule, loanFee } from '../../core/config/loan.config';
-import { DEFAULT_PAYMENT_TYPES } from '../../core/config/payment-types.config';
-import { DEFAULT_SETTINGS } from '../../core/config/settings.defaults';
-import { billettageTotal, emptyBillettage } from '../../core/domain/cash';
+import { formatCardNumber, CARD_BATCH_SIZE } from '@core/config/cards.config';
+import { computeLoanSchedule, loanFee } from '@core/config/loan.config';
+import { DEFAULT_PAYMENT_TYPES } from '@core/config/payment-types.config';
+import { DEFAULT_SETTINGS } from '@core/config/settings.defaults';
+import { billettageTotal, emptyBillettage } from '@core/domain/cash';
 import {
   AppNotification,
   AuditLog,
@@ -26,12 +26,12 @@ import {
   Settings,
   SmsTemplate,
   User,
-} from '../../core/models';
+} from '@core/models';
 import { Rng } from '../rng';
 import { ACCOUNTS, FIRST_NAMES, LAST_NAMES, SMS_TEMPLATES, TRADES } from './reference';
 
 /** Bump when the data shape or business rules change: old browser data is discarded. */
-export const MOCK_DATA_VERSION = 3;
+export const MOCK_DATA_VERSION = 4;
 export const DEFAULT_SEED = 20261109;
 
 export interface MockData {
@@ -52,6 +52,8 @@ export interface MockData {
   smsLog: AppNotification[];
   settings: Settings;
   audit: AuditLog[];
+  /** `POST /members` idempotency: `<agentId>:<Idempotency-Key>` → ids of what was created. */
+  idempotency: Record<string, { memberId: string; paymentId: string }>;
 }
 
 const HOUR = 3_600_000;
@@ -602,5 +604,6 @@ export function seedMockData(now: Date, seed = DEFAULT_SEED): MockData {
     smsLog,
     settings: { ...DEFAULT_SETTINGS },
     audit,
+    idempotency: {},
   };
 }

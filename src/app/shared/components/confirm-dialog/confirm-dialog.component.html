@@ -1,0 +1,30 @@
+<h2 id="confirm-title" class="text-xl font-bold">{{ data.title }}</h2>
+<p class="mt-2 text-ink-muted">{{ data.message }}</p>
+@if (data.reasonRequired) {
+  <label for="confirm-reason" class="mt-4 block text-sm font-semibold">
+    {{ data.reasonLabel ?? reasonLabel }} <span class="text-danger" aria-hidden="true">*</span>
+  </label>
+  <textarea
+    id="confirm-reason"
+    appInput
+    rows="3"
+    class="mt-1.5 py-3"
+    [value]="reason()"
+    (input)="updateReason($event)"
+    aria-required="true"
+  ></textarea>
+}
+<div class="mt-6 flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
+  <button appButton variant="ghost" type="button" (click)="close(false)">
+    {{ cancelLabel }}
+  </button>
+  <button
+    appButton
+    type="button"
+    [variant]="data.danger ? 'danger' : 'primary'"
+    [disabled]="isConfirmBlocked()"
+    (click)="close(true)"
+  >
+    {{ data.confirmLabel ?? confirmLabel }}
+  </button>
+</div>

@@ -66,6 +66,8 @@ export interface LedgerLine {
 export interface LedgerEntry {
   id: string;
   date: IsoDateTime;
+  /** Business day `YYYY-MM-DD` (Abidjan); entries made after the 16:00 cut-off go to J+1. */
+  businessDate?: string;
   journal: string;
   label: string;
   lines: LedgerLine[];

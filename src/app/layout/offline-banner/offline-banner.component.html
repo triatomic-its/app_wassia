@@ -1,0 +1,7 @@
+<div aria-live="polite">
+  @if (!network.online()) {
+    <p class="flex items-center gap-3 bg-warning-soft px-4 py-3 text-sm font-semibold text-warning">
+      <ng-icon name="lucideWifiOff" size="20" aria-hidden="true" />{{ text }}
+    </p>
+  }
+</div>

@@ -1,0 +1,158 @@
+@if (!open()) {
+  <button
+    type="button"
+    class="fixed right-4 bottom-24 z-[60] flex min-h-12 items-center gap-2 rounded-pill bg-accent px-4 font-display text-sm font-bold text-primary shadow-lg md:bottom-4 print:hidden"
+    (click)="open.set(true)"
+  >
+    <ng-icon name="lucideFlaskConical" size="20" aria-hidden="true" />Démo
+  </button>
+} @else {
+  <aside
+    class="fixed inset-y-0 right-0 z-[60] flex w-[min(24rem,100vw)] flex-col gap-5 overflow-y-auto border-l border-border bg-surface p-5 shadow-2xl"
+    aria-label="Outils de démonstration"
+  >
+    <div class="flex items-center justify-between">
+      <h2 class="text-lg font-bold">Outils de démonstration</h2>
+      <button
+        appButton
+        variant="ghost"
+        size="icon"
+        type="button"
+        aria-label="Fermer"
+        (click)="open.set(false)"
+      >
+        <ng-icon name="lucideX" size="22" aria-hidden="true" />
+      </button>
+    </div>
+    <p class="rounded-control bg-warning-soft p-3 text-sm text-warning">
+      Faux serveur : toutes les données sont fictives et restent dans ce navigateur.
+    </p>
+
+    <section class="flex flex-col gap-2">
+      <h3 class="font-bold">Profil connecté</h3>
+      <div class="grid grid-cols-2 gap-2">
+        @for (role of roles; track role) {
+          <button
+            appButton
+            type="button"
+            class="min-h-11 px-3 text-sm"
+            [variant]="session.role() === role ? 'primary' : 'outline'"
+            [disabled]="busy()"
+            (click)="switchTo(role)"
+          >
+            {{ t.roles[role] }}
+          </button>
+        }
+      </div>
+    </section>
+
+    <section class="flex flex-col gap-2">
+      <h3 class="font-bold">Horloge simulée</h3>
+      <p class="text-sm">
+        Il est <b class="font-display text-base text-primary">{{ clockLabel() }}</b>
+        @if (clock.offsetMs() !== 0) {
+          <span class="text-ink-muted">(décalée)</span>
+        }
+      </p>
+      <div class="flex flex-wrap gap-2">
+        <button
+          appButton
+          variant="outline"
+          type="button"
+          class="min-h-10 px-3 text-sm"
+          (click)="setTime(15, 55)"
+        >
+          15 h 55
+        </button>
+        <button
+          appButton
+          variant="outline"
+          type="button"
+          class="min-h-10 px-3 text-sm"
+          (click)="setTime(16, 5)"
+        >
+          16 h 05
+        </button>
+        <button
+          appButton
+          variant="outline"
+          type="button"
+          class="min-h-10 px-3 text-sm"
+          (click)="shift(3_600_000)"
+        >
+          + 1 h
+        </button>
+        <button
+          appButton
+          variant="outline"
+          type="button"
+          class="min-h-10 px-3 text-sm"
+          (click)="shift(86_400_000)"
+        >
+          + 1 jour
+        </button>
+        <button
+          appButton
+          variant="ghost"
+          type="button"
+          class="min-h-10 px-3 text-sm"
+          (click)="control.update({ clockOffsetMs: 0 })"
+        >
+          Heure réelle
+        </button>
+      </div>
+    </section>
+
+    <section class="flex flex-col gap-2">
+      <label for="dev-latency" class="font-bold">Lenteur du réseau</label>
+      <select id="dev-latency" appInput [value]="latencyIndex()" (change)="setLatency($event)">
+        @for (l of latencies; track l.label; let i = $index) {
+          <option [value]="i" [selected]="i === latencyIndex()">{{ l.label }}</option>
+        }
+      </select>
+    </section>
+
+    <section class="flex flex-col gap-2">
+      <label for="dev-fault" class="font-bold">Provoquer une erreur</label>
+      <select id="dev-fault" appInput [value]="control.state().fault" (change)="setFault($event)">
+        @for (f of faults; track f.kind) {
+          <option [value]="f.kind" [selected]="f.kind === control.state().fault">
+            {{ f.label }}
+          </option>
+        }
+      </select>
+      <label class="flex min-h-11 items-center gap-2 text-sm">
+        <input
+          type="checkbox"
+          class="size-5 accent-primary"
+          [checked]="control.state().faultOnce"
+          (change)="setFaultOnce($event)"
+        />
+        Seulement pour la prochaine requête
+      </label>
+    </section>
+
+    <section class="flex flex-col gap-2">
+      <h3 class="font-bold">Scan de carte (sans caméra)</h3>
+      <p class="text-sm text-ink-muted">
+        Sur l'écran « Associer la carte », simule le scan du code QR d'une carte vierge.
+      </p>
+      <button appButton variant="outline" type="button" (click)="simulateScan()">
+        Scanner la carte vierge {{ nextFreeCard() }}
+      </button>
+    </section>
+
+    <section class="flex flex-col gap-2">
+      <h3 class="font-bold">Données fictives</h3>
+      <dl class="grid grid-cols-[1fr_auto] gap-x-4 gap-y-1 text-sm">
+        @for (c of counts(); track c.label) {
+          <dt class="text-ink-muted">{{ c.label }}</dt>
+          <dd class="text-right font-semibold">{{ c.value }}</dd>
+        }
+      </dl>
+      <button appButton variant="danger" type="button" class="mt-2" (click)="reset()">
+        Réinitialiser les données
+      </button>
+    </section>
+  </aside>
+}

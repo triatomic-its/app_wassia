@@ -6,11 +6,11 @@ import {
 } from '@angular/common/http';
 import { TestBed } from '@angular/core/testing';
 import { firstValueFrom } from 'rxjs';
-import { authInterceptor } from '../core/api/interceptors';
-import { MockAuthService } from '../core/auth/auth.mock';
-import { AuthService } from '../core/auth/auth.service';
-import { SessionStore } from '../core/auth/session.store';
-import { Member, Page } from '../core/models';
+import { authInterceptor } from '@core/interceptors/auth.interceptor';
+import { MockAuthService } from '@core/auth/auth.mock';
+import { AuthService } from '@core/auth/auth.service';
+import { SessionStore } from '@core/auth/session.store';
+import { Member, Page } from '@core/models';
 import { provideRouter } from '@angular/router';
 import { MockControl } from './control';
 import { DB_KEY, MockDb } from './db';

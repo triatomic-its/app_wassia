@@ -1,0 +1,26 @@
+@switch (check().state) {
+  @case ('checking') {
+    <p class="-mt-1.5 flex items-center gap-2 text-sm text-ink-muted">
+      <ng-icon name="lucideLoaderCircle" size="18" class="animate-spin" aria-hidden="true" />
+      Vérification du numéro…
+    </p>
+  }
+  @case ('free') {
+    <p class="-mt-1.5 flex items-center gap-2 text-sm font-semibold text-success">
+      <ng-icon name="lucideCircleCheck" size="18" aria-hidden="true" />
+      Ce numéro n'est pas encore enregistré
+    </p>
+  }
+  @case ('taken') {
+    <p class="-mt-1.5 flex items-center gap-2 text-sm font-semibold text-danger" role="alert">
+      <ng-icon name="lucideCircleAlert" size="18" aria-hidden="true" />
+      Déjà inscrit : {{ takenName() }}
+    </p>
+  }
+  @case ('error') {
+    <p class="-mt-1.5 flex items-center gap-2 text-sm font-semibold text-warning">
+      <ng-icon name="lucideCircleAlert" size="18" aria-hidden="true" />
+      {{ errorMessage() }} Le numéro sera vérifié à l'enregistrement.
+    </p>
+  }
+}

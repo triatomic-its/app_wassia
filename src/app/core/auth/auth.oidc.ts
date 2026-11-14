@@ -1,5 +1,5 @@
 import { Injectable, inject, signal } from '@angular/core';
-import { environment } from '../../../environments/environment';
+import { environment } from '@env/environment';
 import { AuthService } from './auth.service';
 import { SessionStore } from './session.store';
 

@@ -8,13 +8,13 @@ import {
   inject,
   provideAppInitializer,
 } from '@angular/core';
-import { environment } from '../../environments/environment';
-import { MockAuthService } from '../core/auth/auth.mock';
-import { AuthService } from '../core/auth/auth.service';
-import { SIMULATED_QR_SCANS } from '../shared/ui/card-scan';
+import { environment } from '@env/environment';
+import { MockAuthService } from '@core/auth/auth.mock';
+import { AuthService } from '@core/auth/auth.service';
+import { SIMULATED_QR_SCANS } from '@shared/components/card-scan/card-scan.component';
 import { MockControl } from './control';
 import { MockDb } from './db';
-import { DevPanel } from './dev-panel/dev-panel';
+import { DevPanel } from './dev-panel/dev-panel.component';
 import { mockBackendInterceptor } from './mock-backend.interceptor';
 import { MockScanner } from './scanner';
 

@@ -1,0 +1,12 @@
+@if (variant() === 'symbol') {
+  <img [src]="symbolSrc" width="216" height="242" [alt]="name" class="h-auto w-14" />
+} @else {
+  <img
+    [src]="horizontalSrc()"
+    width="704"
+    height="274"
+    [alt]="name"
+    class="h-auto"
+    [style.width.px]="width()"
+  />
+}

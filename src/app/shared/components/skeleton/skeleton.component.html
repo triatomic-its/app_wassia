@@ -1,0 +1,7 @@
+<span class="sr-only">{{ loadingLabel }}</span>
+@for (width of widths(); track $index) {
+  <span
+    class="block h-4 animate-pulse rounded-control bg-neutral-soft"
+    [style.width.%]="width"
+  ></span>
+}

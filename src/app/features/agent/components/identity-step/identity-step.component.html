@@ -1,0 +1,48 @@
+<app-field label="Nom et prénoms" for="en-name" [required]="true" [error]="errors().fullName">
+  <input
+    id="en-name"
+    appInput
+    autocomplete="name"
+    [formControl]="form().controls.fullName"
+    [attr.aria-invalid]="!!errors().fullName"
+    aria-describedby="en-name-msg"
+  />
+</app-field>
+
+<app-field label="Téléphone" for="en-phone" [required]="true" [error]="errors().phone">
+  <input
+    id="en-phone"
+    appInput
+    type="tel"
+    inputmode="tel"
+    autocomplete="tel"
+    placeholder="07 00 00 00 00"
+    [formControl]="form().controls.phone"
+    (blur)="phoneLeft.emit()"
+    [attr.aria-invalid]="!!errors().phone"
+    aria-describedby="en-phone-msg"
+  />
+</app-field>
+<app-phone-check-status [check]="phoneCheck()" />
+
+<app-field label="Marché" for="en-market" [required]="true" [error]="errors().market">
+  <select
+    id="en-market"
+    appInput
+    [formControl]="form().controls.market"
+    aria-describedby="en-market-msg"
+  >
+    @for (m of markets; track m) {
+      <option [value]="m">{{ m }}</option>
+    }
+  </select>
+</app-field>
+
+<app-field label="Emplacement (facultatif)" for="en-stall" hint="Exemple : Allée B, étal 12">
+  <input
+    id="en-stall"
+    appInput
+    [formControl]="form().controls.stall"
+    aria-describedby="en-stall-msg"
+  />
+</app-field>

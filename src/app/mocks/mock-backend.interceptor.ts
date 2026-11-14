@@ -8,10 +8,10 @@ import {
 } from '@angular/common/http';
 import { inject } from '@angular/core';
 import { Observable, mergeMap, of, throwError, timer } from 'rxjs';
-import { environment } from '../../environments/environment';
-import { Permission, permissionsOf } from '../core/config/permissions.config';
-import { ROLES, Role, User } from '../core/models';
-import { ClockService } from '../core/realtime/clock.service';
+import { environment } from '@env/environment';
+import { Permission, permissionsOf } from '@core/config/permissions.config';
+import { ROLES, Role, User } from '@core/models';
+import { ClockService } from '@core/services/clock.service';
 import { FaultKind, MockControl } from './control';
 import { MockDb } from './db';
 import { MOCK_ROUTES } from './handlers';
@@ -102,6 +102,7 @@ export const mockBackendInterceptor: HttpInterceptorFn = (req, next) => {
         path,
         params: match.params,
         query: req.params,
+        headers: req.headers,
         body: req.body,
         user,
         permissions,

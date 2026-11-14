@@ -1,15 +1,16 @@
-import { ROLE_PERMISSIONS } from '../../core/config/permissions.config';
-import { FR } from '../../core/i18n/fr';
-import { ROLES } from '../../core/models';
-import { EnrollmentInput } from '../../core/domain/enrollment';
-import { maskName } from '../../shared/pipes/mask-name.pipe';
+import { ROLE_PERMISSIONS } from '@core/config/permissions.config';
+import { FR } from '@core/i18n/fr';
+import { ROLES } from '@core/models';
+import { EnrollmentInput } from '@core/domain/enrollment';
+import { maskName } from '@core/i18n/format/mask-name';
 import { agentToday, assignCard, enrollMember, findByPhone, findCard } from '../domain';
-import { MockContext, MockRoute, fail, matchesText, paginate } from '../http';
+import { MockContext, MockRoute, fail, matchesText, paginate, requireUser } from '../http';
 import { MockData } from '../seed/seed';
 
 /** Agents only see their own merchants and collections. */
 function scopeToAgent<T extends { agentId?: string }>(ctx: MockContext, items: T[]): T[] {
-  return ctx.user?.role === 'AGENT' ? items.filter((i) => i.agentId === ctx.user!.id) : items;
+  const user = ctx.user;
+  return user?.role === 'AGENT' ? items.filter((i) => i.agentId === user.id) : items;
 }
 
 function filterBy<T>(items: T[], ctx: MockContext, fields: (keyof T & string)[]): T[] {
@@ -99,14 +100,16 @@ export const MOCK_ROUTES: readonly MockRoute[] = [
     method: 'GET',
     pattern: '/agent/today',
     access: ['collect.field'],
-    handler: (ctx) => agentToday(ctx.db.snapshot as MockData, ctx.user!, ctx.now),
+    handler: (ctx) => agentToday(ctx.db.snapshot as MockData, requireUser(ctx), ctx.now),
   },
   {
-    method: 'GET',
+    // POST so the phone number never appears in a URL (server logs, proxies, history).
+    method: 'POST',
     pattern: '/members/phone-check',
     access: ['member.enroll'],
     handler: (ctx) => {
-      const existing = findByPhone(ctx.db.snapshot as MockData, ctx.query.get('phone') ?? '');
+      const body = (ctx.body ?? {}) as { phone?: string };
+      const existing = findByPhone(ctx.db.snapshot as MockData, body.phone ?? '');
       return existing
         ? { available: false, existingName: maskName(existing.fullName) }
         : { available: true };
@@ -119,7 +122,13 @@ export const MOCK_ROUTES: readonly MockRoute[] = [
     status: 201,
     handler: (ctx) =>
       ctx.db.write((data) =>
-        enrollMember(data, ctx.user!, (ctx.body ?? {}) as Partial<EnrollmentInput>, ctx.now),
+        enrollMember(
+          data,
+          requireUser(ctx),
+          (ctx.body ?? {}) as Partial<EnrollmentInput>,
+          ctx.now,
+          ctx.headers.get('Idempotency-Key') ?? undefined,
+        ),
       ),
   },
   {
@@ -133,13 +142,15 @@ export const MOCK_ROUTES: readonly MockRoute[] = [
     }),
   },
   {
-    method: 'GET',
+    // POST so the card's secret QR token never appears in a URL.
+    method: 'POST',
     pattern: '/cards/lookup',
     access: ['card.assign', 'cards.manage'],
     handler: (ctx) => {
+      const body = (ctx.body ?? {}) as { qrToken?: string; number?: string };
       const card = findCard(ctx.db.snapshot as MockData, {
-        qr: ctx.query.get('qr'),
-        number: ctx.query.get('number'),
+        qr: body.qrToken,
+        number: body.number,
       });
       if (!card) throw fail(404, 'CARD_NOT_FOUND', 'Ce code QR n’est pas une carte WASSIA.');
       return { card: { id: card.id, printedNumber: card.printedNumber, status: card.status } };
@@ -152,7 +163,7 @@ export const MOCK_ROUTES: readonly MockRoute[] = [
     handler: (ctx) => {
       const body = (ctx.body ?? {}) as { memberId?: string; qrToken?: string };
       return ctx.db.write((data) =>
-        assignCard(data, ctx.user!, body.memberId ?? '', body.qrToken, ctx.now),
+        assignCard(data, requireUser(ctx), body.memberId ?? '', body.qrToken, ctx.now),
       );
     },
   },

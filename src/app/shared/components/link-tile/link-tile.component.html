@@ -1,0 +1,9 @@
+<a [routerLink]="link()" [class]="classes()">
+  @if (icon(); as name) {
+    <ng-icon [name]="name" size="22" aria-hidden="true" />
+  }
+  <span class="flex-1"><ng-content /></span>
+  <span class="flex items-center font-semibold" [class.text-primary]="tone() === 'neutral'">
+    {{ actionLabel() }}<ng-icon name="lucideChevronRight" size="18" aria-hidden="true" />
+  </span>
+</a>

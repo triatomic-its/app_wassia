@@ -1,6 +1,6 @@
 import { Directive, TemplateRef, ViewContainerRef, effect, inject, input } from '@angular/core';
-import { SessionStore } from '../../core/auth/session.store';
-import { Permission } from '../../core/config/permissions.config';
+import { SessionStore } from '@core/auth/session.store';
+import { Permission } from '@core/config/permissions.config';
 
 /**
  * Renders its content only if the current user has the permission.

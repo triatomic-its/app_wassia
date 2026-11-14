@@ -1,5 +1,5 @@
 import { Injectable, effect, inject, signal } from '@angular/core';
-import { ClockService } from '../core/realtime/clock.service';
+import { ClockService } from '@core/services/clock.service';
 import { readJson, writeJson } from './storage';
 
 export type FaultKind = 'none' | '401' | '403' | '404' | '409' | '422' | '500' | 'network';

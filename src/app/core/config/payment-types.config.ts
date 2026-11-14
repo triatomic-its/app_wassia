@@ -1,4 +1,7 @@
-import { PaymentChannel, PaymentType } from '../models';
+import { Fcfa, PaymentChannel, PaymentType } from '../models';
+
+/** Membership fee paid on the spot at enrollment, unless the administration changes it (A4). */
+export const DEFAULT_MEMBERSHIP_FEE: Fcfa = 1_000;
 
 /** Default payment types, editable in admin (ASSUMPTION A4). */
 export const DEFAULT_PAYMENT_TYPES: readonly PaymentType[] = [
@@ -6,7 +9,7 @@ export const DEFAULT_PAYMENT_TYPES: readonly PaymentType[] = [
     id: 'pt-membership',
     code: 'MEMBERSHIP',
     label: 'Adhésion',
-    defaultAmount: 1_000,
+    defaultAmount: DEFAULT_MEMBERSHIP_FEE,
     fixedAmount: true,
     active: true,
   },

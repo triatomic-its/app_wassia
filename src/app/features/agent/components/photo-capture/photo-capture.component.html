@@ -1,0 +1,43 @@
+<div
+  class="flex items-center gap-3 rounded-card border bg-surface p-3"
+  [class.border-danger]="error()"
+  [class.border-border]="!error()"
+>
+  <div
+    class="flex size-16 shrink-0 items-center justify-center overflow-hidden rounded-control bg-neutral-soft text-ink-muted"
+  >
+    @if (preview(); as src) {
+      <img [src]="src" alt="" class="size-full object-cover" />
+    } @else {
+      <ng-icon [name]="url() ? 'lucideCircleCheck' : 'lucideCamera'" size="26" aria-hidden="true" />
+    }
+  </div>
+  <div class="min-w-0 flex-1">
+    <div class="font-semibold">{{ label() }}</div>
+    @if (busy()) {
+      <div class="text-sm text-ink-muted">Envoi de la photo…</div>
+    } @else if (url()) {
+      <div class="flex items-center gap-1 text-sm font-semibold text-success">
+        <ng-icon name="lucideCircleCheck" size="16" aria-hidden="true" />Photo enregistrée
+      </div>
+    } @else if (error()) {
+      <div class="text-sm font-semibold text-danger">{{ error() }}</div>
+    } @else {
+      <div class="text-sm text-ink-muted">Obligatoire</div>
+    }
+  </div>
+  <label
+    class="flex min-h-12 cursor-pointer items-center rounded-control border-[1.5px] border-primary px-4 font-display text-sm font-bold text-primary focus-within:outline-3 focus-within:outline-accent hover:bg-info-soft"
+  >
+    {{ actionLabel() }}
+    <input
+      type="file"
+      accept="image/*"
+      capture="environment"
+      class="sr-only"
+      [attr.aria-label]="inputLabel()"
+      [disabled]="busy()"
+      (change)="takePicture($event)"
+    />
+  </label>
+</div>

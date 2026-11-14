@@ -1,0 +1,104 @@
+<!-- Desktop / tablet -->
+<table class="hidden w-full text-sm md:table">
+  @if (caption()) {
+    <caption class="sr-only">
+      {{
+        caption()
+      }}
+    </caption>
+  }
+  <thead>
+    <tr class="bg-surface-alt text-left text-xs text-ink-muted">
+      @for (col of columns(); track col.key) {
+        <th
+          scope="col"
+          class="px-3 py-2.5 font-semibold first:pl-5 last:pr-5"
+          [class.text-right]="col.align === 'end'"
+        >
+          {{ col.label }}
+        </th>
+      }
+      @if (selectable()) {
+        <th scope="col" class="pr-5"><span class="sr-only">Action</span></th>
+      }
+    </tr>
+  </thead>
+  <tbody>
+    @for (view of rowViews(); track view.key) {
+      <tr class="border-t border-border-soft" [class.bg-info-soft]="view.selected">
+        @for (col of columns(); track col.key) {
+          <td
+            class="px-3 py-3 first:pl-5 first:font-semibold last:pr-5"
+            [class.text-right]="col.align === 'end'"
+          >
+            <ng-container
+              [ngTemplateOutlet]="cellTpl"
+              [ngTemplateOutletContext]="{ row: view.row, col }"
+            />
+          </td>
+        }
+        @if (selectable()) {
+          <td class="py-2 pr-5 text-right">
+            <button
+              type="button"
+              class="min-h-10 rounded-control px-3 font-semibold text-primary hover:bg-info-soft"
+              (click)="rowSelect.emit(view.row)"
+            >
+              {{ selectLabel() }}
+            </button>
+          </td>
+        }
+      </tr>
+    }
+  </tbody>
+</table>
+
+<!-- Phone: one card per row -->
+<ul class="flex flex-col gap-2 p-3 md:hidden">
+  @for (view of rowViews(); track view.key) {
+    <li>
+      <div
+        class="rounded-control border border-border-soft bg-surface p-4"
+        [class.ring-2]="view.selected"
+        [class.ring-primary]="view.selected"
+      >
+        @if (primaryColumn(); as pc) {
+          <div class="mb-2 font-display font-bold text-primary">
+            <ng-container
+              [ngTemplateOutlet]="cellTpl"
+              [ngTemplateOutletContext]="{ row: view.row, col: pc }"
+            />
+          </div>
+        }
+        <dl class="grid grid-cols-[auto_1fr] gap-x-4 gap-y-1.5 text-sm">
+          @for (col of mobileColumns(); track col.key) {
+            <dt class="text-ink-muted">{{ col.label }}</dt>
+            <dd class="text-right">
+              <ng-container
+                [ngTemplateOutlet]="cellTpl"
+                [ngTemplateOutletContext]="{ row: view.row, col }"
+              />
+            </dd>
+          }
+        </dl>
+        @if (selectable()) {
+          <button
+            type="button"
+            class="mt-3 min-h-12 w-full rounded-control border border-border font-semibold text-primary"
+            (click)="rowSelect.emit(view.row)"
+          >
+            {{ selectLabel() }}
+          </button>
+        }
+      </div>
+    </li>
+  }
+</ul>
+
+<ng-template #cellTpl let-row="row" let-col="col">
+  @if (cellTemplates().get(col.key); as tpl) {
+    <ng-container [ngTemplateOutlet]="tpl" [ngTemplateOutletContext]="{ $implicit: row }" />
+  } @else {
+    {{ col.value ? col.value(row) : '' }}
+  }
+</ng-template>

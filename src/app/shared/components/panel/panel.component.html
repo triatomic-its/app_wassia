@@ -1,0 +1,7 @@
+@if (title()) {
+  <div class="flex items-center gap-3 border-b border-border px-5 py-4">
+    <h2 class="flex-1 text-[1.0625rem] font-bold">{{ title() }}</h2>
+    <ng-content select="[panel-aside]" />
+  </div>
+}
+<ng-content />

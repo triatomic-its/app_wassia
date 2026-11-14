@@ -1,0 +1,4 @@
+/** `plural(2, 'carte à associer', 'cartes à associer')` → `2 cartes à associer`. */
+export function plural(count: number, singular: string, pluralForm: string): string {
+  return `${count} ${count > 1 ? pluralForm : singular}`;
+}

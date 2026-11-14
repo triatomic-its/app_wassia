@@ -43,7 +43,7 @@ describe('enrollment validation', () => {
   };
 
   it('accepts a complete file', () => {
-    expect(hasErrors(validateEnrollment(complete))).toBe(false);
+    expect(hasErrors(validateEnrollment(complete, 1000))).toBe(false);
   });
 
   it('explains each missing identity field in plain French', () => {
@@ -61,9 +61,15 @@ describe('enrollment validation', () => {
 
 describe('membership payment', () => {
   it('requires a channel, then the agent’s confirmation', () => {
-    expect(validatePayment({}).paymentChannel).toBeTruthy();
-    expect(validatePayment({ paymentChannel: 'CASH' }).paymentConfirmed).toMatch(/reçu/);
-    expect(validatePayment({ paymentChannel: 'WAVE' }).paymentConfirmed).toMatch(/Wave/);
-    expect(validatePayment({ paymentChannel: 'WAVE', paymentConfirmed: true })).toEqual({});
+    expect(validatePayment({}, 1000).paymentChannel).toBeTruthy();
+    expect(validatePayment({ paymentChannel: 'CASH' }, 1000).paymentConfirmed).toMatch(/reçu/);
+    expect(validatePayment({ paymentChannel: 'WAVE' }, 1000).paymentConfirmed).toMatch(/Wave/);
+    expect(validatePayment({ paymentChannel: 'WAVE', paymentConfirmed: true }, 1000)).toEqual({});
+  });
+
+  it('quotes the fee set by the administration', () => {
+    expect(validatePayment({ paymentChannel: 'CASH' }, 1500).paymentConfirmed).toBe(
+      'Confirmez que vous avez reçu les 1\u00a0500\u00a0F.',
+    );
   });
 });

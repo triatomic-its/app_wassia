@@ -1,0 +1,60 @@
+<main class="flex w-full max-w-3xl flex-1 flex-col items-center gap-6">
+  <app-brand [width]="220" />
+
+  <section class="w-full rounded-card border border-border bg-surface p-5 sm:p-8">
+    <h1 class="text-2xl font-bold">Connexion</h1>
+
+    @if (auth.kind === 'mock') {
+      <p class="mt-1 text-ink-muted">Version de démonstration : choisissez qui vous êtes.</p>
+      <ul class="mt-5 grid gap-3 sm:grid-cols-2">
+        @for (role of roles; track role) {
+          <li>
+            <button
+              type="button"
+              class="flex min-h-18 w-full items-center gap-4 rounded-card border-[1.5px] border-border bg-surface px-4 py-3 text-left hover:border-primary hover:bg-info-soft disabled:opacity-50"
+              [class.border-sapin]="role === 'AGENT'"
+              [disabled]="busy() !== null"
+              (click)="enter(role)"
+            >
+              <span
+                class="flex size-11 shrink-0 items-center justify-center rounded-full"
+                [class]="role === 'AGENT' ? 'bg-sapin text-white' : 'bg-info-soft text-primary'"
+              >
+                <ng-icon [name]="icons[role]" size="22" aria-hidden="true" />
+              </span>
+              <span class="min-w-0">
+                <span class="block font-display font-bold text-primary">{{ t.roles[role] }}</span>
+                <span class="block text-sm text-ink-muted">
+                  {{ busy() === role ? t.common.loading : t.roleHints[role] }}
+                </span>
+              </span>
+            </button>
+          </li>
+        }
+      </ul>
+    } @else {
+      <p class="mt-1 text-ink-muted">Utilisez votre compte WASSIA.</p>
+      <button
+        appButton
+        size="xl"
+        type="button"
+        class="mt-5"
+        [block]="true"
+        [disabled]="busy() !== null"
+        (click)="enter()"
+      >
+        <ng-icon name="lucideLogIn" size="24" aria-hidden="true" />Se connecter
+      </button>
+    }
+
+    <div aria-live="assertive">
+      @if (error()) {
+        <p class="mt-4 rounded-control bg-danger-soft p-3 font-semibold text-danger" role="alert">
+          {{ error() }}
+        </p>
+      }
+    </div>
+  </section>
+
+  <app-iob-notice class="max-w-xl text-center" />
+</main>

@@ -17,9 +17,10 @@ import {
 } from '@angular/router';
 import { provideServiceWorker } from '@angular/service-worker';
 import { routes } from './app.routes';
-import { authInterceptor, errorInterceptor } from './core/api/interceptors';
-import { OidcAuthService } from './core/auth/auth.oidc';
-import { AuthService } from './core/auth/auth.service';
+import { authInterceptor } from '@core/interceptors/auth.interceptor';
+import { errorInterceptor } from '@core/interceptors/error.interceptor';
+import { OidcAuthService } from '@core/auth/auth.oidc';
+import { AuthService } from '@core/auth/auth.service';
 // Fake back end in development; replaced by an empty module in production builds.
 import { MOCK_INTERCEPTORS, MOCK_PROVIDERS } from './mocks';
 

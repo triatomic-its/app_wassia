@@ -1,0 +1,98 @@
+<app-step-bars
+  role="progressbar"
+  [count]="steps.length"
+  [current]="store.step()"
+  [attr.aria-valuenow]="store.step() + 1"
+  aria-valuemin="1"
+  [attr.aria-valuemax]="steps.length"
+  [attr.aria-label]="stepCounter()"
+/>
+<div class="flex items-baseline justify-between gap-3">
+  <h2 class="font-display text-lg font-bold text-primary">{{ stepTitle() }}</h2>
+  <span class="shrink-0 text-sm text-ink-muted">{{ stepCounter() }}</span>
+</div>
+
+@switch (store.step()) {
+  @case (0) {
+    <app-identity-step
+      [form]="store.form"
+      [errors]="store.errors()"
+      [phoneCheck]="store.phoneCheck()"
+      (phoneLeft)="store.checkPhone()"
+    />
+  }
+  @case (1) {
+    <app-documents-step
+      [form]="store.form"
+      [errors]="store.errors()"
+      [photoUrls]="store.photoUrls()"
+      [uploads]="store.uploads()"
+      (photoPicked)="uploadPhoto($event)"
+    />
+  }
+  @case (2) {
+    @if (store.feeReady()) {
+      <app-payment-step
+        [form]="store.form"
+        [errors]="store.errors()"
+        [fee]="store.fee()"
+        [channel]="store.paymentChannel()"
+      />
+      @if (store.afterCutoff()) {
+        <app-alert tone="warning" [announce]="false">
+          Il est plus de {{ store.cutoffLabel() }} : ce paiement sera compté demain.
+        </app-alert>
+      }
+    } @else if (store.feeFailed()) {
+      <app-error-state
+        message="Impossible de connaître le montant de l'adhésion."
+        (retry)="store.reloadFee()"
+      />
+    } @else {
+      <app-skeleton [lines]="3" />
+    }
+  }
+}
+
+<div aria-live="assertive">
+  @if (store.submitError(); as message) {
+    <app-alert tone="danger">{{ message }}</app-alert>
+  }
+</div>
+
+<div class="mt-1 flex gap-2.5">
+  @if (store.step() > 0) {
+    <button
+      appButton
+      variant="outline"
+      type="button"
+      class="flex-1"
+      [disabled]="store.submitting()"
+      (click)="store.previous()"
+    >
+      Retour
+    </button>
+  }
+  @if (store.isLastStep()) {
+    <button
+      appButton
+      variant="success"
+      type="button"
+      class="flex-[2]"
+      [disabled]="store.submitting() || !store.feeReady()"
+      (click)="store.submit()"
+    >
+      {{ store.submitting() ? 'Enregistrement…' : 'Enregistrer le membre' }}
+    </button>
+  } @else {
+    <button
+      appButton
+      variant="success"
+      type="button"
+      class="flex-[2]"
+      (click)="continueToNextStep()"
+    >
+      Continuer
+    </button>
+  }
+</div>

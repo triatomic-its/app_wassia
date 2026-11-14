@@ -124,9 +124,9 @@ Client rule (2026-11-10): the agent registers a merchant **only once the 1 000 F
 
 `collected`/`deposits`: the agent's confirmed payments of the business day (savings and membership fees); `toRemit`: **cash** collected (including membership fees paid in cash) minus remittances received by the cashier; `lateMembers`: own merchants with a loan in `LATE_1`/`LATE_2`; `cardsToAssign`: own members registered (paid) without a card.
 
-#### `GET /members/phone-check?phone=0700000000` — access: member.enroll
+#### `POST /members/phone-check` — access: member.enroll
 
-`{ "available": true }` or `{ "available": false, "existingName": "K*** D***" }` (name always masked).
+Body `{ "phone": "0700000000" }` — POST so the phone number never appears in a URL (server logs, proxies, browser history). → `{ "available": true }` or `{ "available": false, "existingName": "K*** D***" }` (name always masked).
 
 #### `POST /uploads` — access: any user
 
@@ -135,6 +135,8 @@ Multipart `file`. Response `201 { "url": "…" }` — the reference to send in `
 #### `POST /members` — access: member.enroll
 
 Registers the merchant and the 1 000 F payment **in one atomic operation** (all or nothing).
+
+Header **`Idempotency-Key: <uuid>`** (one per registration, reused on every retry): if the same agent sends the same key again, the server returns the first `201` response unchanged and creates nothing (a lost response followed by a retry must not end in `PHONE_ALREADY_USED`). Keys are scoped to the agent.
 
 ```json
 {
@@ -156,6 +158,8 @@ Registers the merchant and the 1 000 F payment **in one atomic operation** (all 
 
 `201` → `{ "member": { "status": "CARD_TO_ASSIGN", "accountNumber": "CPT-000121", "agentId": "u-ag1", … }, "payment": { "amount": 1000, "channel": "CASH", "status": "CONFIRMED", "agentId": "u-ag1", … } }`
 
+Business day: `payment.businessDate` and the ledger entry's `businessDate` (`YYYY-MM-DD`, Abidjan) are today before the cash cut-off (`settings.cashCutoffTime`, 16:00) and **the next day (J+1) from the cut-off on**; the registration itself is never refused for that reason.
+
 Side effects: ledger entry (debit `571` Caisse or `5215` Wave / credit `7061` Frais d'adhésion), audit `ENROLL_MEMBER`. The amount comes from the `MEMBERSHIP` payment type (1 000 F by default, editable in admin). A cash fee is part of what the agent hands to the cashier.
 
 | Error | Code                    | When                                                                                                                                                            |
@@ -165,9 +169,9 @@ Side effects: ledger entry (debit `571` Caisse or `5215` Wave / credit `7061` Fr
 
 Phone: 10 digits starting with 01, 05 or 07 (`+225` prefix accepted), stored as `07 12 34 56 78`.
 
-#### `GET /cards/lookup?qr=<scanned token>` — access: card.assign, cards.manage
+#### `POST /cards/lookup` — access: card.assign, cards.manage
 
-`{ "card": { "id", "printedNumber", "status" } }` — lets the agent check the scanned card is blank (`UNASSIGNED`) before associating it. 404 `CARD_NOT_FOUND` when the QR is not a WASSIA card. (Back-office card management may also look up by `?number=WAS-000124`.)
+Body `{ "qrToken": "<scanned token>" }` — POST so the card's secret token never appears in a URL. → `{ "card": { "id", "printedNumber", "status" } }` — lets the agent check the scanned card is blank (`UNASSIGNED`) before associating it. 404 `CARD_NOT_FOUND` when the QR is not a WASSIA card. (Back-office card management may also look up by `{ "number": "WAS-000124" }`.)
 
 #### `POST /cards/assign` — access: card.assign
 

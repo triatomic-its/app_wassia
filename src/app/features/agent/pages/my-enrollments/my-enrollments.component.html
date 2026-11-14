@@ -1,0 +1,67 @@
+@if (store.toAssign.value(); as page) {
+  @if (page.items.length > 0) {
+    <app-panel title="Cartes à associer">
+      <span panel-aside class="text-sm text-ink-muted">Adhésion payée</span>
+      <ul class="divide-y divide-border-soft">
+        @for (m of page.items; track m.id) {
+          <li class="flex items-center gap-3 px-4 py-3">
+            <span class="min-w-0 flex-1">
+              <span class="block truncate font-semibold">{{ m.fullName }}</span>
+              <span class="block text-sm text-ink-muted">
+                Inscrit {{ m.createdAt | timeAgo: store.now() }}
+              </span>
+            </span>
+            <a
+              [routerLink]="['/agent/inscriptions', m.id, 'carte']"
+              appButton
+              variant="success"
+              class="min-h-11 px-3.5 text-sm"
+            >
+              Associer la carte
+            </a>
+          </li>
+        }
+      </ul>
+    </app-panel>
+  }
+} @else if (store.toAssign.error()) {
+  <app-error-state (retry)="store.toAssign.reload()" />
+}
+
+<a routerLink="/agent/inscrire" appButton variant="outline" [block]="true">Inscrire un marchand</a>
+
+<app-panel title="Mes marchands">
+  @if (store.members.value(); as page) {
+    <span panel-aside class="text-sm text-ink-muted">{{ page.total }} au total</span>
+  }
+  @if (store.members.error()) {
+    <app-error-state (retry)="store.members.reload()" />
+  } @else if (store.members.value(); as page) {
+    @if (page.items.length === 0) {
+      <app-empty-state
+        title="Aucun marchand inscrit"
+        text="Les marchands que vous inscrivez apparaîtront ici."
+        icon="lucideUserPlus"
+      />
+    } @else {
+      <ul class="divide-y divide-border-soft">
+        @for (m of page.items; track m.id) {
+          <li class="flex items-center gap-3 px-4 py-3">
+            <span class="min-w-0 flex-1">
+              <span class="block truncate font-semibold">{{ m.fullName }}</span>
+              <span class="block text-sm text-ink-muted">
+                {{ m.trade }} · inscrit {{ m.createdAt | timeAgo: store.now() }}
+              </span>
+            </span>
+            <app-status-chip
+              [label]="statusDisplay[m.status].label"
+              [tone]="statusDisplay[m.status].tone"
+            />
+          </li>
+        }
+      </ul>
+    }
+  } @else {
+    <div class="p-4"><app-skeleton [lines]="4" /></div>
+  }
+</app-panel>

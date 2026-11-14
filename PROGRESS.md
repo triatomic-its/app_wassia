@@ -34,3 +34,18 @@
 - **Vérifié** : lint, 81 tests, build ; parcours joués dans un navigateur (téléphone) : inscription → scan → carte activée, et inscription → « Associer plus tard » → carte à associer.
 - **Reste** : mode hors connexion complet en Phase 4 ; la page du QR publique (Phase 3) sert aux versements d'épargne.
 - **Hypothèses** : A20, A21, A24 ajoutées ; A2, A22, A23 confirmées ; A14 sans objet.
+
+## Refactor qualité — revue de code (2026-11-10)
+
+- **Fait (étapes 1–4 de la revue)** : un composant par fichier dans `shared/ui` et `core/layout` ; nouveaux `app-alert`, `app-link-tile`, `dom-events` (plus aucun `$any`) ; formatage pur déplacé dans `core/i18n/format` ; règles sorties des composants vers des fonctions pures testées (`cash-cutoff`, `membership`, « il y a… », pluriels, affichage des statuts) ; montant d'adhésion passé en paramètre (plus de « 1 000 F » en dur) ; feature `agent` restructurée en `data-access/ domain/ forms/ ui/ pages/`, Reactive Forms typés, stores par écran, plus aucun `subscribe` dans les composants agent.
+- **Bug corrigé** : une réponse tardive de la vérification du téléphone pouvait bloquer un numéro corrigé (désormais `switchMap`, test ajouté).
+- **Vérifié** : lint, 104 tests, build (initial 383 kB ; le chunk de l'inscription passe à 110 kB avec `@angular/forms`).
+- **Reste (étapes 5–7)** : libellés vers `fr.ts` + `TitleStrategy`, `NavigationStore` pour les shells, `AgentHeader`, découpage du faux back par domaine (`seed.ts`, `handlers/`, `mocks/domain.ts`).
+
+## Structure par fonctionnalité + correctifs de la revue (2026-11-14)
+
+- **Structure** : `layout/` à la racine ; `shared/` découpé en `components/ directives/ pipes/ services/ utils/` ; `core/interceptors/` (auth + erreurs séparés), `core/services/` (toast, horloge, réseau), `auth.guard.ts` séparé ; feature `agent` en `pages/<page>/` (composant + store de la page) `components/ services/ models/` ; composants en `.component.ts` + `.component.html` (plus aucun template inline hors tests) ; alias `@core @shared @layout @features @env` ; ESLint interdit `../../../`, les imports entre features et les dépendances montantes (`core` → `shared`…). Écarts au guide du relecteur notés dans `docs/ARCHITECTURE.md`.
+- **Correctifs** : téléphone et jeton QR sortis des URL (`POST /members/phone-check`, `POST /cards/lookup`) ; `POST /members` idempotent (`Idempotency-Key`) ; après 16 h 00 le paiement d'adhésion et son écriture sont rattachés à J+1 (`businessDate`, bandeau sur l'étape paiement) ; « Enregistrer » bloqué tant que le montant d'adhésion n'est pas chargé ; échec de la vérification du téléphone affiché (silence seulement hors connexion). Données de démo en version 4.
+- **Vérifié** : lint, 119 tests, build (initial 383 kB).
+- **Reste** : étapes 5–7 de la revue précédente ; appliquer le même rattachement J+1 aux versements (Phase 4) et à la caisse (Phase 6).
+- **Hypothèses ajoutées** : A25.

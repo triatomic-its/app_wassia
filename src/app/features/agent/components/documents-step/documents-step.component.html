@@ -1,0 +1,48 @@
+<app-photo-capture
+  label="Pièce d'identité (CNI)"
+  [url]="photoUrls().idDocUrl"
+  [busy]="uploads().idDocUrl.busy"
+  [error]="uploads().idDocUrl.error ?? errors().idDocUrl"
+  (picked)="photoPicked.emit({ field: 'idDocUrl', file: $event })"
+/>
+<app-photo-capture
+  label="Photo de l'étalage ou du commerce"
+  [url]="photoUrls().photoUrl"
+  [busy]="uploads().photoUrl.busy"
+  [error]="uploads().photoUrl.error ?? errors().photoUrl"
+  (picked)="photoPicked.emit({ field: 'photoUrl', file: $event })"
+/>
+
+<app-field
+  label="Numéro de la pièce d'identité"
+  for="en-id"
+  [required]="true"
+  [error]="errors().idNumber"
+>
+  <input
+    id="en-id"
+    appInput
+    autocapitalize="characters"
+    placeholder="CI 0000 0000"
+    [formControl]="form().controls.idNumber"
+    [attr.aria-invalid]="!!errors().idNumber"
+    aria-describedby="en-id-msg"
+  />
+</app-field>
+
+<app-field label="Activité" for="en-trade" [required]="true" [error]="errors().trade">
+  <input
+    id="en-trade"
+    appInput
+    list="en-trades"
+    placeholder="Vente de pagnes"
+    [formControl]="form().controls.trade"
+    [attr.aria-invalid]="!!errors().trade"
+    aria-describedby="en-trade-msg"
+  />
+  <datalist id="en-trades">
+    @for (t of trades; track t) {
+      <option [value]="t"></option>
+    }
+  </datalist>
+</app-field>

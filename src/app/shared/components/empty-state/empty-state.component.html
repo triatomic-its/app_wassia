@@ -1,0 +1,8 @@
+<span class="flex size-14 items-center justify-center rounded-full bg-info-soft text-info">
+  <ng-icon [name]="icon()" size="28" aria-hidden="true" />
+</span>
+<p class="font-display text-lg font-bold text-primary">{{ title() }}</p>
+@if (text()) {
+  <p class="max-w-sm text-ink-muted">{{ text() }}</p>
+}
+<ng-content />

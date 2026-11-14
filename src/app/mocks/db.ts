@@ -1,5 +1,5 @@
 import { Injectable, inject, signal } from '@angular/core';
-import { ClockService } from '../core/realtime/clock.service';
+import { ClockService } from '@core/services/clock.service';
 import { MOCK_DATA_VERSION, MockData, seedMockData } from './seed/seed';
 import { readJson, removeKey, writeJson } from './storage';
 

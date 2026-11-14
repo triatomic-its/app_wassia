@@ -1,63 +1,58 @@
-import { formatAbidjanDate } from './abidjan-date.pipe';
-import { formatFcfa } from './fcfa.pipe';
-import { maskName } from './mask-name.pipe';
+import { ChangeDetectionStrategy, Component } from '@angular/core';
+import { TestBed } from '@angular/core/testing';
+import { AbidjanDatePipe } from './abidjan-date.pipe';
+import { FcfaPipe } from './fcfa.pipe';
+import { MaskNamePipe } from './mask-name.pipe';
+import { TimeAgoPipe } from './time-ago.pipe';
 
-const NBSP = ' ';
+// The formatting rules themselves are tested in core/i18n/format/format.spec.ts;
+// here we check the pipes are wired to them, arguments included, inside a real template.
 
-describe('formatFcfa', () => {
-  it('groups thousands with non-breaking spaces and appends F', () => {
-    expect(formatFcfa(1000)).toBe(`1${NBSP}000${NBSP}F`);
-    expect(formatFcfa(10_800_000)).toBe(`10${NBSP}800${NBSP}000${NBSP}F`);
-    expect(formatFcfa(0)).toBe(`0${NBSP}F`);
+const NBSP = new RegExp('[' + String.fromCharCode(0xa0, 0x202f) + ']', 'g');
+
+@Component({
+  selector: 'app-pipes-host',
+  changeDetection: ChangeDetectionStrategy.OnPush,
+  imports: [FcfaPipe, AbidjanDatePipe, MaskNamePipe, TimeAgoPipe],
+  template: `
+    <span id="fcfa">{{ 1000 | fcfa }}</span>
+    <span id="signed">{{ 5000 | fcfa: true }}</span>
+    <span id="empty">{{ null | fcfa }}</span>
+    <span id="datetime">{{ iso | abidjanDate }}</span>
+    <span id="date">{{ iso | abidjanDate: 'date' }}</span>
+    <span id="mask">{{ 'Koné Diarra' | maskName }}</span>
+    <span id="ago">{{ iso | timeAgo: now }}</span>
+  `,
+})
+class PipesHost {
+  readonly iso = '2026-11-02T13:05:00Z';
+  readonly now = new Date('2026-11-02T16:05:00Z');
+}
+
+function render(): (id: string) => string {
+  const fixture = TestBed.createComponent(PipesHost);
+  fixture.detectChanges();
+  const el = fixture.nativeElement as HTMLElement;
+  return (id) => (el.querySelector(`#${id}`)?.textContent ?? '').replace(NBSP, ' ').trim();
+}
+
+describe('shared pipes', () => {
+  it('formats money in whole FCFA', () => {
+    const text = render();
+    expect(text('fcfa')).toBe('1 000 F');
+    expect(text('signed')).toBe('+ 5 000 F');
+    expect(text('empty')).toBe('—');
   });
 
-  it('uses a true minus sign for negative amounts', () => {
-    expect(formatFcfa(-500)).toBe(`−${NBSP}500${NBSP}F`);
+  it('formats dates in Abidjan time, with the requested variant', () => {
+    const text = render();
+    expect(text('datetime')).toBe('02/11/2026 13:05');
+    expect(text('date')).toBe('02/11/2026');
   });
 
-  it('adds + only when signed', () => {
-    expect(formatFcfa(5000, true)).toBe(`+${NBSP}5${NBSP}000${NBSP}F`);
-    expect(formatFcfa(5000)).toBe(`5${NBSP}000${NBSP}F`);
-  });
-
-  it('never shows decimals and handles empty values', () => {
-    expect(formatFcfa(1234.9)).toBe(`1${NBSP}234${NBSP}F`);
-    expect(formatFcfa(null)).toBe('—');
-    expect(formatFcfa(undefined)).toBe('—');
-  });
-});
-
-describe('formatAbidjanDate', () => {
-  const iso = '2026-11-02T13:05:00Z';
-
-  it('formats jj/mm/aaaa HH:mm in Africa/Abidjan (UTC+0)', () => {
-    expect(formatAbidjanDate(iso)).toBe('02/11/2026 13:05');
-  });
-
-  it('formats date, time and long variants', () => {
-    expect(formatAbidjanDate(iso, 'date')).toBe('02/11/2026');
-    expect(formatAbidjanDate(iso, 'time')).toBe('13 h 05');
-    expect(formatAbidjanDate(iso, 'long')).toBe('Lundi 2 novembre');
-  });
-
-  it('uses Abidjan time, not the browser offset', () => {
-    expect(formatAbidjanDate('2026-11-02T23:30:00Z', 'date')).toBe('02/11/2026');
-  });
-
-  it('returns a dash for empty or invalid input', () => {
-    expect(formatAbidjanDate(null)).toBe('—');
-    expect(formatAbidjanDate('not a date')).toBe('—');
-  });
-});
-
-describe('maskName', () => {
-  it('keeps only the first letter of each word', () => {
-    expect(maskName('Koné Diarra')).toBe('K*** D***');
-    expect(maskName('  mariam   traoré ')).toBe('M*** T***');
-  });
-
-  it('returns an empty string for empty input', () => {
-    expect(maskName('')).toBe('');
-    expect(maskName(null)).toBe('');
+  it('masks names and shows elapsed time', () => {
+    const text = render();
+    expect(text('mask')).toBe('K*** D***');
+    expect(text('ago')).toContain('3');
   });
 });

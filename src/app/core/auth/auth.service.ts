@@ -1,6 +1,6 @@
 import { Injectable, inject } from '@angular/core';
 import { firstValueFrom } from 'rxjs';
-import { ApiClient } from '../api/api.client';
+import { ApiClient } from '../api/api-client.service';
 import { API } from '../api/endpoints';
 import { Permission } from '../config/permissions.config';
 import { Role, User } from '../models';
