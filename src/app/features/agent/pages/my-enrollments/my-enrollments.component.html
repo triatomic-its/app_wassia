@@ -4,7 +4,8 @@
       <span panel-aside class="text-sm text-ink-muted">Adhésion payée</span>
       <ul class="divide-y divide-border-soft">
         @for (m of page.items; track m.id) {
-          <li class="flex min-h-16 items-center gap-3.5 px-4 py-3">
+          <!-- Phone: the button goes under the name, full width. Tablet: on the right. -->
+          <li class="flex flex-wrap items-center gap-x-3.5 gap-y-2.5 px-4 py-3">
             <span
               class="flex size-[2.375rem] shrink-0 items-center justify-center rounded-tile bg-accent-soft text-accent-ink"
               aria-hidden="true"
@@ -12,7 +13,7 @@
               <ng-icon name="lucideCreditCard" size="20" />
             </span>
             <span class="min-w-0 flex-1">
-              <span class="block truncate font-semibold">{{ m.fullName }}</span>
+              <span class="line-clamp-2 font-semibold break-words">{{ m.fullName }}</span>
               <span class="block text-sm text-ink-muted">
                 Inscrit {{ m.createdAt | timeAgo: store.now() }}
               </span>
@@ -21,7 +22,7 @@
               [routerLink]="['/agent/inscriptions', m.id, 'carte']"
               appButton
               variant="success"
-              class="min-h-12 rounded-control px-3.5 text-sm shadow-none"
+              class="min-h-12 w-full rounded-control px-3.5 text-sm shadow-none sm:w-auto"
             >
               Associer la carte
             </a>
@@ -54,23 +55,27 @@
     } @else {
       <ul class="divide-y divide-border-soft">
         @for (m of page.items; track m.id) {
-          <li class="flex min-h-16 items-center gap-3.5 px-4 py-3">
+          <!-- Name and sector use the full width; status and date on their own line below. -->
+          <li class="flex min-h-16 items-start gap-3.5 px-4 py-3">
             <span
               class="flex size-[2.375rem] shrink-0 items-center justify-center rounded-tile bg-primary-soft text-primary"
               aria-hidden="true"
             >
               <ng-icon name="lucideUser" size="20" />
             </span>
-            <span class="min-w-0 flex-1">
-              <span class="block truncate font-semibold">{{ m.fullName }}</span>
-              <span class="block text-sm text-ink-muted">
-                {{ m.trade }} · inscrit {{ m.createdAt | timeAgo: store.now() }}
+            <span class="flex min-w-0 flex-1 flex-col gap-1">
+              <span class="line-clamp-2 font-semibold break-words">{{ m.fullName }}</span>
+              @if (m.trade) {
+                <span class="truncate text-sm text-ink-muted">{{ m.trade }}</span>
+              }
+              <span class="flex flex-wrap items-center gap-x-2 gap-y-1 text-sm text-ink-muted">
+                <app-status-chip
+                  [label]="statusDisplay[m.status].label"
+                  [tone]="statusDisplay[m.status].tone"
+                />
+                <span>Inscrit {{ m.createdAt | timeAgo: store.now() }}</span>
               </span>
             </span>
-            <app-status-chip
-              [label]="statusDisplay[m.status].label"
-              [tone]="statusDisplay[m.status].tone"
-            />
           </li>
         }
       </ul>
