@@ -82,3 +82,11 @@
 - **Vérifié** : lint, 142 tests, build (initial 407 kB) ; navigateur : bandeau 16 h 00 et règles chargées une seule fois, aucun échec ; référentiel construit sur les vraies données (2 agences, 3 marchés, 5 pôles, 16 secteurs).
 - **Reste** : étape 4, parcours agent sur le registre (formulaire `DossierSaisi` avec marchés et secteurs du référentiel, `POST /enrolements`, `/especes` avec la date de caisse, association de carte).
 - **Hypothèses** : A33 ajoutée. À noter : dans le registre, le marché d'Adjamé est rattaché à l'agence de Treichville.
+
+## Intégration du registre — étape 4 : inscription d'un marchand sur le vrai serveur (2026-11-20)
+
+- **Fait** : `AgentApi` devient abstraite avec deux implémentations choisies par l'environnement (`MockAgentApi`, `RegistreAgentApi` qui délègue au faux back ce que le registre n'a pas) ; formulaire en **4 étapes** aligné sur `DossierSaisi` (nom / prénoms, pièce et secteur, personne de confiance et engagement d'épargne, paiement et accord) ; envoi `/enrolements` → `/especes` ou `/numerique` → numéro de compte, rejeu sûr ; association de carte par scan (`/faits/apercu` + `/cartes/associations`) ; « Mes inscriptions » reconstruites depuis les faits ; nouveau statut « En attente de validation » ; écran de succès honnête (actif après le visa de caisse) ; refus du registre traduits en français simple (`registre-errors.ts`) ; panneau Démo : scan d'une carte du registre par son numéro.
+- **Corrigé en passant** : lire `.value()` d'une ressource Angular en erreur lève une exception ; les écrans agent l'auraient fait en cas de panne réseau (désormais `hasValue()`).
+- **Vérifié** : lint, 158 tests, build (initial 408 kB) ; parcours complet dans le navigateur contre le serveur local : inscription en 4 étapes, enregistrement, carte WAS-000003 reconnue puis associée, compte `WS-2026-000002`, marchand listé « En attente de validation », aucune requête en échec.
+- **Reste** : collecte (étape 5), caisse et visa qui activera les comptes (étape 6). Côté back : vues en erreur, deuxième carte acceptée sur un même compte, endpoint d'envoi de photos.
+- **Hypothèses** : A34, A35 ajoutées ; A24 remplacée (référence Wave obligatoire).

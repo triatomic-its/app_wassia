@@ -137,9 +137,31 @@
       <p class="text-sm text-ink-muted">
         Sur l'écran « Associer la carte », simule le scan du code QR d'une carte vierge.
       </p>
-      <button appButton variant="outline" type="button" (click)="simulateScan()">
-        Scanner la carte vierge {{ nextFreeCard() }}
-      </button>
+      @if (useRegistre) {
+        <label class="text-sm font-semibold" for="dev-registre-card">
+          Carte du registre (créée par npm run seed:registre)
+        </label>
+        <input
+          id="dev-registre-card"
+          appInput
+          autocomplete="off"
+          [value]="registreCard()"
+          (input)="setRegistreCard($event)"
+          aria-describedby="dev-registre-card-msg"
+        />
+        @if (registreCardError(); as message) {
+          <p id="dev-registre-card-msg" class="text-sm font-semibold text-danger" role="alert">
+            {{ message }}
+          </p>
+        }
+        <button appButton variant="outline" type="button" (click)="simulateRegistreScan()">
+          Scanner la carte {{ registreCard() }}
+        </button>
+      } @else {
+        <button appButton variant="outline" type="button" (click)="simulateScan()">
+          Scanner la carte vierge {{ nextFreeCard() }}
+        </button>
+      }
     </section>
 
     <section class="flex flex-col gap-2">

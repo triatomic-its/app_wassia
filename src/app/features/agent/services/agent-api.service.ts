@@ -1,17 +1,12 @@
 import { Injectable, inject } from '@angular/core';
-import { Observable, map } from 'rxjs';
-import { ApiClient } from '@core/api/api-client.service';
-import { API } from '@core/api/endpoints';
-import { toPageParams } from '@core/api/pagination';
-import { EnrollmentInput, phoneDigits } from '@core/domain/enrollment';
-import { membershipFeeOf } from '@core/domain/membership';
-import { ProductRulesService } from '@core/services/product-rules.service';
-import { environment } from '@env/environment';
+import { Observable } from 'rxjs';
+import { EnrollmentInput } from '@core/domain/enrollment';
 import {
   AgentToday,
   Card,
   CardAssignResult,
   CardLookup,
+  EnrollmentOptions,
   EnrollmentResult,
   Fcfa,
   Loan,
@@ -21,6 +16,9 @@ import {
   PaymentType,
   PhoneCheck,
 } from '@core/models';
+import { environment } from '@env/environment';
+import { MockAgentApi } from './mock-agent-api.service';
+import { RegistreAgentApi } from './registre-agent-api.service';
 
 export interface MemberDetail {
   member: Member;
@@ -29,82 +27,42 @@ export interface MemberDetail {
   loans: Loan[];
 }
 
-/** Typed access to the endpoints used by the field-agent screens. */
-@Injectable({ providedIn: 'root' })
-export class AgentApi {
-  private readonly api = inject(ApiClient);
-  private readonly rules = inject(ProductRulesService);
-
-  today(): Observable<AgentToday> {
-    return this.api.get<AgentToday>(API.agentToday);
-  }
-
-  /** Cash paid on the spot at enrollment: the registry rule, or the mock's payment types. */
-  membershipFee(): Observable<Fcfa> {
-    return environment.useRegistre
-      ? this.rules.rules().pipe(map((r) => r.membershipCashFee))
-      : this.paymentTypes().pipe(map(membershipFeeOf));
-  }
-
-  /** Cash cut-off time (`HH:mm`): the registry rule, or the mock's settings. */
-  cutoffTime(): Observable<string> {
-    return environment.useRegistre
-      ? this.rules.rules().pipe(map((r) => r.cutoffTime))
-      : this.today().pipe(map((t) => t.cutoffTime));
-  }
-
+/**
+ * Typed access to what the field-agent screens need. Two implementations, chosen by the
+ * environment: `RegistreAgentApi` (real back end, hybrid: it delegates to the mock what the
+ * registry does not expose yet) and `MockAgentApi` (mock back end only). Screens inject
+ * `AgentApi` and never know which one runs.
+ */
+@Injectable({
+  providedIn: 'root',
+  useFactory: () => (environment.useRegistre ? inject(RegistreAgentApi) : inject(MockAgentApi)),
+})
+export abstract class AgentApi {
+  abstract today(): Observable<AgentToday>;
+  /** Cash paid on the spot at enrollment. */
+  abstract membershipFee(): Observable<Fcfa>;
+  /** Cash cut-off time (`HH:mm`, Africa/Abidjan). */
+  abstract cutoffTime(): Observable<string>;
+  /** Markets, sectors and the minimum savings offered by the registration form. */
+  abstract enrollmentOptions(): Observable<EnrollmentOptions>;
   /** Payment types configured by the administration (membership fee, savings…). */
-  paymentTypes(): Observable<PaymentType[]> {
-    return this.api.get<PaymentType[]>(API.paymentTypes);
-  }
-
-  /** POST, so the phone number never appears in a URL. */
-  checkPhone(phone: string): Observable<PhoneCheck> {
-    return this.api.post<PhoneCheck>(API.phoneCheck, { phone: phoneDigits(phone) });
-  }
-
-  /** Simulated photo upload: returns the stored file reference. */
-  upload(file: File): Observable<string> {
-    const body = new FormData();
-    body.append('file', file);
-    return this.api.post<{ url: string }>(API.uploads, body).pipe(map((r) => r.url));
-  }
-
+  abstract paymentTypes(): Observable<PaymentType[]>;
+  /** Is this phone number free? (POST: the number never appears in a URL.) */
+  abstract checkPhone(phone: string): Observable<PhoneCheck>;
+  /** Photo upload: returns the stored file reference. */
+  abstract upload(file: File): Observable<string>;
   /**
    * Registers a merchant who has paid the 1 000 F (the card is associated next).
-   * `idempotencyKey` is the same for every retry of one registration: the server never
-   * creates the merchant twice.
+   * `idempotencyKey` is the same for every retry of one registration: never created twice.
    */
-  enroll(input: EnrollmentInput, idempotencyKey: string): Observable<EnrollmentResult> {
-    return this.api.post<EnrollmentResult>(API.members, input, {
-      'Idempotency-Key': idempotencyKey,
-    });
-  }
-
+  abstract enroll(input: EnrollmentInput, idempotencyKey: string): Observable<EnrollmentResult>;
   /** The agent's own merchants, newest first. */
-  myMembers(size = 30): Observable<Page<Member>> {
-    return this.api.get<Page<Member>>(API.members, toPageParams({ size, sort: 'createdAt,desc' }));
-  }
-
-  member(id: string): Observable<MemberDetail> {
-    return this.api.get<MemberDetail>(API.member(id));
-  }
-
-  /** Checks a scanned QR code: is it a blank WASSIA card? POST: the token stays out of URLs. */
-  lookupCard(qrToken: string): Observable<CardLookup> {
-    return this.api.post<CardLookup>(API.cardLookup, { qrToken });
-  }
-
-  /** Associates the scanned card with a registered member, who becomes active. */
-  assignCard(memberId: string, qrToken: string): Observable<CardAssignResult> {
-    return this.api.post<CardAssignResult>(API.cardAssign, { memberId, qrToken });
-  }
-
+  abstract myMembers(size?: number): Observable<Page<Member>>;
+  abstract member(id: string): Observable<MemberDetail>;
+  /** Checks a scanned QR code: is it a blank WASSIA card? */
+  abstract lookupCard(qrToken: string): Observable<CardLookup>;
+  /** Associates the scanned card with a registered member. */
+  abstract assignCard(memberId: string, qrToken: string): Observable<CardAssignResult>;
   /** Own merchants registered (paid) who still have no card. */
-  cardsToAssign(): Observable<Page<Member>> {
-    return this.api.get<Page<Member>>(
-      API.members,
-      toPageParams({ size: 50, sort: 'createdAt,desc' }, { status: 'CARD_TO_ASSIGN' }),
-    );
-  }
+  abstract cardsToAssign(): Observable<Page<Member>>;
 }

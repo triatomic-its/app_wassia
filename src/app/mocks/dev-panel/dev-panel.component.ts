@@ -13,7 +13,9 @@ import { eventChecked, eventValue } from '@shared/utils/dom-events';
 import { InputDirective } from '@shared/directives/input.directive';
 import { FAULTS, FaultKind, MockControl } from '../control';
 import { MockDb } from '../db';
+import { environment } from '@env/environment';
 import { MockScanner } from '../scanner';
+import { registreDemoCardToken, toPrintedNumber } from '../registre-demo-cards';
 
 const LATENCIES = [
   { label: 'Aucune (0 ms)', min: 0, max: 0 },
@@ -124,6 +126,28 @@ export class DevPanel {
     if (!card) return;
     this.open.set(false);
     this.scanner.scan(card.qrToken);
+  }
+
+  /** Registry mode: the blank cards are the registry's (`npm run seed:registre`). */
+  protected readonly useRegistre = environment.useRegistre;
+  protected readonly registreCard = signal('WAS-000003');
+  protected readonly registreCardError = signal<string | null>(null);
+
+  protected setRegistreCard(event: Event): void {
+    this.registreCard.set(eventValue(event));
+    this.registreCardError.set(null);
+  }
+
+  /** Sends the QR token of a registry demo card to the open scanner, then closes the panel. */
+  protected async simulateRegistreScan(): Promise<void> {
+    const printed = toPrintedNumber(this.registreCard());
+    if (!printed) {
+      this.registreCardError.set('Écrivez un numéro de carte, par exemple WAS-000003.');
+      return;
+    }
+    const token = await registreDemoCardToken(printed);
+    this.open.set(false);
+    this.scanner.scan(token);
   }
 
   protected reset(): void {

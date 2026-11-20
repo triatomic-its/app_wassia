@@ -7,6 +7,8 @@ import { Fcfa, IsoDateTime } from './common.model';
 export type EnrollmentStatus =
   /** Paid and registered; the agent still has to scan a blank card. */
   | 'CARD_TO_ASSIGN'
+  /** Registry: card associated, the account waits for the cash closure visa (1 000 F). */
+  | 'PENDING_VALIDATION'
   | 'ACTIVE'
   /** e.g. savings blocked after a second late loan repayment. */
   | 'SUSPENDED';

@@ -1,5 +1,6 @@
 import { HttpErrorResponse } from '@angular/common/http';
 import { FR } from '../i18n/fr';
+import { translateRegistreRefusal } from './registre-errors';
 
 /** Single error format returned by the API (see docs/API_CONTRACT.md). */
 export interface ApiError {
@@ -17,15 +18,6 @@ export function isApiError(value: unknown): value is ApiError {
   );
 }
 
-/** Stable code for an HTTP status, used when the body only carries a message. */
-function codeOfStatus(status: number): string {
-  if (status === 404) return 'NOT_FOUND';
-  if (status === 409) return 'CONFLICT';
-  if (status === 422) return 'VALIDATION';
-  if (status >= 500) return 'SERVER_ERROR';
-  return 'UNKNOWN';
-}
-
 /** Body of the "Registre Wassia" errors: `{ message }` only (no code). */
 function registreMessage(body: unknown): string | null {
   if (typeof body !== 'object' || body === null) return null;
@@ -37,10 +29,10 @@ function registreMessage(body: unknown): string | null {
 export function toApiError(error: unknown): ApiError {
   if (error instanceof HttpErrorResponse) {
     if (isApiError(error.error)) return error.error;
-    // Business refusals of the registry (409, 422) carry a message meant for the user.
+    // Business refusals of the registry (409, 422): translated into plain French.
     const message = registreMessage(error.error);
     if (message && (error.status === 409 || error.status === 422)) {
-      return { code: codeOfStatus(error.status), message };
+      return translateRegistreRefusal(error.status, message);
     }
     if (error.status === 0) {
       return { code: 'NETWORK', message: 'Pas de connexion. Vérifiez internet puis réessayez.' };

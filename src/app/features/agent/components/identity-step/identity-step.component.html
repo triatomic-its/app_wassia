@@ -1,11 +1,25 @@
-<app-field label="Nom et prénoms" for="en-name" [required]="true" [error]="errors().fullName">
+<app-field label="Nom" for="en-last-name" [required]="true" [error]="errors().lastName">
   <input
-    id="en-name"
+    id="en-last-name"
     appInput
-    autocomplete="name"
-    [formControl]="form().controls.fullName"
-    [attr.aria-invalid]="!!errors().fullName"
-    aria-describedby="en-name-msg"
+    autocomplete="family-name"
+    autocapitalize="characters"
+    placeholder="KONÉ"
+    [formControl]="form().controls.lastName"
+    [attr.aria-invalid]="!!errors().lastName"
+    aria-describedby="en-last-name-msg"
+  />
+</app-field>
+
+<app-field label="Prénoms" for="en-first-names" [required]="true" [error]="errors().firstNames">
+  <input
+    id="en-first-names"
+    appInput
+    autocomplete="given-name"
+    placeholder="Awa Mariam"
+    [formControl]="form().controls.firstNames"
+    [attr.aria-invalid]="!!errors().firstNames"
+    aria-describedby="en-first-names-msg"
   />
 </app-field>
 
@@ -30,15 +44,17 @@
     id="en-market"
     appInput
     [formControl]="form().controls.market"
+    [attr.aria-invalid]="!!errors().market"
     aria-describedby="en-market-msg"
   >
-    @for (m of markets; track m) {
-      <option [value]="m">{{ m }}</option>
+    <option value="" disabled>Choisir le marché</option>
+    @for (m of markets(); track m.value) {
+      <option [value]="m.value">{{ m.label }}</option>
     }
   </select>
 </app-field>
 
-<app-field label="Emplacement (facultatif)" for="en-stall" hint="Exemple : Allée B, étal 12">
+<app-field label="Numéro d'étal (facultatif)" for="en-stall" hint="Exemple : Allée B, étal 12">
   <input
     id="en-stall"
     appInput

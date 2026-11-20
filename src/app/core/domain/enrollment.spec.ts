@@ -3,11 +3,13 @@ import {
   hasErrors,
   isValidCiPhone,
   phoneDigits,
+  validateCommitment,
   validateDocuments,
   validateEnrollment,
   validateIdentity,
   validatePayment,
 } from './enrollment';
+import { COMPLETE_ENROLLMENT } from './enrollment.fixture';
 
 describe('Ivorian phone numbers', () => {
   it('accepts 10-digit numbers starting with 01, 05 or 07', () => {
@@ -30,46 +32,73 @@ describe('Ivorian phone numbers', () => {
 });
 
 describe('enrollment validation', () => {
-  const complete = {
-    fullName: 'Mariam Traoré',
-    phone: '0700000001',
-    market: 'Adjamé',
-    trade: 'Vente de pagnes',
-    idNumber: 'CI 1234 5678',
-    idDocUrl: 'mock-upload://a',
-    photoUrl: 'mock-upload://b',
-    paymentChannel: 'CASH' as const,
-    paymentConfirmed: true,
-  };
-
   it('accepts a complete file', () => {
-    expect(hasErrors(validateEnrollment(complete, 1000))).toBe(false);
+    expect(hasErrors(validateEnrollment(COMPLETE_ENROLLMENT, 1000, 2000))).toBe(false);
   });
 
   it('explains each missing identity field in plain French', () => {
-    const errors = validateIdentity({ fullName: 'M', phone: '123', market: '' });
-    expect(errors.fullName).toMatch(/nom/);
+    const errors = validateIdentity({ lastName: 'M', firstNames: '', phone: '123', market: '' });
+    expect(errors.lastName).toMatch(/nom/);
+    expect(errors.firstNames).toMatch(/prénoms/);
     expect(errors.phone).toMatch(/10 chiffres/);
     expect(errors.market).toMatch(/marché/);
   });
 
-  it('requires both photos, the ID number and the activity', () => {
-    const errors = validateDocuments({ idNumber: '', trade: '' });
-    expect(Object.keys(errors).sort()).toEqual(['idDocUrl', 'idNumber', 'photoUrl', 'trade']);
+  it('requires both photos, the ID number and the sector', () => {
+    const errors = validateDocuments({ idType: 'CNI', idNumber: '', sector: '' });
+    expect(Object.keys(errors).sort()).toEqual(['idDocUrl', 'idNumber', 'photoUrl', 'sector']);
   });
 });
 
-describe('membership payment', () => {
-  it('requires a channel, then the agent’s confirmation', () => {
-    expect(validatePayment({}, 1000).paymentChannel).toBeTruthy();
-    expect(validatePayment({ paymentChannel: 'CASH' }, 1000).paymentConfirmed).toMatch(/reçu/);
-    expect(validatePayment({ paymentChannel: 'WAVE' }, 1000).paymentConfirmed).toMatch(/Wave/);
-    expect(validatePayment({ paymentChannel: 'WAVE', paymentConfirmed: true }, 1000)).toEqual({});
+describe('referent and savings commitment', () => {
+  it('accepts the complete commitment', () => {
+    expect(validateCommitment(COMPLETE_ENROLLMENT, 2000)).toEqual({});
   });
 
-  it('quotes the fee set by the administration', () => {
-    expect(validatePayment({ paymentChannel: 'CASH' }, 1500).paymentConfirmed).toBe(
-      'Confirmez que vous avez reçu les 1\u00a0500\u00a0F.',
+  it('refuses a deposit under the registry minimum, quoting it', () => {
+    const errors = validateCommitment({ ...COMPLETE_ENROLLMENT, savingsAmount: 1500 }, 2000);
+    expect(errors.savingsAmount).toBe('Le versement doit être d’au moins 2 000 F.');
+    expect(validateCommitment({ ...COMPLETE_ENROLLMENT, savingsAmount: NaN }, 2000)).toHaveProperty(
+      'savingsAmount',
+    );
+  });
+
+  it('wants another person than the merchant, who knows they are named', () => {
+    const errors = validateCommitment(
+      { ...COMPLETE_ENROLLMENT, referentPhone: COMPLETE_ENROLLMENT.phone, referentInformed: false },
+      2000,
+    );
+    expect(errors.referentPhone).toMatch(/autre personne/);
+    expect(errors.referentInformed).toBeTruthy();
+  });
+});
+
+describe('membership payment and consent', () => {
+  const consent = { consentAccepted: true };
+
+  it('requires a channel, then the agent’s confirmation', () => {
+    expect(validatePayment(consent, 1000).paymentChannel).toBeTruthy();
+    expect(validatePayment({ ...consent, paymentChannel: 'CASH' }, 1000).paymentConfirmed).toMatch(
+      /reçu/,
+    );
+    expect(
+      validatePayment({ ...consent, paymentChannel: 'CASH', paymentConfirmed: true }, 1000),
+    ).toEqual({});
+  });
+
+  it('requires the Wave reference: it is the payment’s key in the registry', () => {
+    const wave = { ...consent, paymentChannel: 'WAVE' as const, paymentConfirmed: true };
+    expect(validatePayment(wave, 1000).paymentRef).toMatch(/référence/);
+    expect(validatePayment({ ...wave, paymentRef: 'T-ABC123' }, 1000)).toEqual({});
+  });
+
+  it('requires the merchant’s consent', () => {
+    expect(validatePayment({}, 1000).consentAccepted).toBeTruthy();
+  });
+
+  it('quotes the fee in force', () => {
+    expect(validatePayment({ ...consent, paymentChannel: 'CASH' }, 1500).paymentConfirmed).toBe(
+      'Confirmez que vous avez reçu les 1 500 F.',
     );
   });
 });

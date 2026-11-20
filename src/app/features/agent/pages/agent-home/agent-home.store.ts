@@ -14,20 +14,22 @@ export class AgentHomeStore {
   private readonly clock = inject(ClockService);
 
   readonly today = rxResource({ stream: () => this.api.today() });
+  private readonly todayValue = computed(() => (this.today.hasValue() ? this.today.value() : null));
 
   private readonly cutoff = rxResource({ stream: () => this.api.cutoffTime() });
   private readonly cutoffTime = computed(
-    () => this.cutoff.value() ?? DEFAULT_SETTINGS.cashCutoffTime,
+    // A resource in error throws on value(): fall back to the default cut-off.
+    () => (this.cutoff.hasValue() ? this.cutoff.value() : DEFAULT_SETTINGS.cashCutoffTime),
   );
   readonly cutoffLabel = computed(() => formatHourLabel(this.cutoffTime()));
   readonly countdown = computed(() =>
     cutoffCountdown(this.clock.now(), COLLECTION_DAY_START, this.cutoffTime()),
   );
   readonly cardsToAssignLabel = computed(() =>
-    plural(this.today.value()?.cardsToAssign ?? 0, 'carte à associer', 'cartes à associer'),
+    plural(this.todayValue()?.cardsToAssign ?? 0, 'carte à associer', 'cartes à associer'),
   );
   readonly lateMembersLabel = computed(
     () =>
-      `${plural(this.today.value()?.lateMembers ?? 0, 'marchand en retard', 'marchands en retard')} à relancer`,
+      `${plural(this.todayValue()?.lateMembers ?? 0, 'marchand en retard', 'marchands en retard')} à relancer`,
   );
 }

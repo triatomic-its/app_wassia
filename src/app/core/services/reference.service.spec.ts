@@ -42,6 +42,7 @@ describe('buildReference', () => {
         id: h('m'),
         code: 'treichville-centre',
         label: 'Treichville centre',
+        agencyId: h('a'),
         agencyCode: 'treichville',
       },
     ]);

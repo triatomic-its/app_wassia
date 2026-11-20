@@ -4,14 +4,14 @@
   </div>
 } @else if (store.detail.value(); as d) {
   @if (store.done(); as r) {
-    <!-- Card associated: the member is active -->
+    <!-- Card associated. Mock: active at once. Registry: active after the cash closure visa. -->
     <section class="flex flex-col gap-4 px-1 pt-2" role="status">
       <span class="flex size-16 items-center justify-center rounded-card bg-sapin text-white">
         <ng-icon name="lucideCircleCheck" size="32" aria-hidden="true" />
       </span>
       <div>
         <h2 class="text-[1.75rem] leading-tight font-extrabold tracking-tight text-night">
-          Carte activée
+          {{ r.card.status === 'ACTIVE' ? 'Carte activée' : 'Carte associée' }}
         </h2>
         <p class="mt-2 text-[0.9375rem] leading-normal text-ink-muted">
           Carte {{ r.card.printedNumber }} remise à {{ r.member.fullName }}.
@@ -27,9 +27,16 @@
         <p class="flex-1 font-display font-bold text-ink">Compte N° {{ r.member.accountNumber }}</p>
       </div>
     </section>
-    <app-alert tone="success" icon="lucideMessageSquareText" [announce]="false">
-      <b>SMS envoyé</b> : son compte est actif, il peut verser son épargne dès maintenant.
-    </app-alert>
+    @if (r.card.status === 'ACTIVE') {
+      <app-alert tone="success" icon="lucideMessageSquareText" [announce]="false">
+        <b>SMS envoyé</b> : son compte est actif, il peut verser son épargne dès maintenant.
+      </app-alert>
+    } @else {
+      <app-alert tone="info" [announce]="false">
+        <b>Le compte sera actif après la validation de la caisse.</b> Remettez les espèces à la
+        caissière ce soir ; la carte servira dès que le directeur aura validé la journée.
+      </app-alert>
+    }
     <a routerLink="/agent/inscrire" appButton variant="success" [block]="true">
       Inscrire un autre marchand
     </a>
@@ -40,8 +47,8 @@
       Mes inscriptions
     </a>
   } @else {
-    <!-- The 3 enrollment steps are done, this is the last one -->
-    <app-step-bars aria-hidden="true" [count]="4" [current]="3" />
+    <!-- The 4 enrollment steps are done, this is the last one -->
+    <app-step-bars aria-hidden="true" [count]="5" [current]="4" />
     <app-alert tone="success" icon="lucideCircleCheck" [announce]="false">
       <b>{{ d.member.fullName }} est enregistré.</b>
       @if (store.membership(); as p) {

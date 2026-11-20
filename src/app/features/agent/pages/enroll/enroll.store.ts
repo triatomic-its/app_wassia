@@ -1,5 +1,5 @@
 import { HttpErrorResponse } from '@angular/common/http';
-import { DestroyRef, Injectable, computed, inject, signal } from '@angular/core';
+import { DestroyRef, Injectable, computed, effect, inject, signal } from '@angular/core';
 import { rxResource, takeUntilDestroyed, toSignal } from '@angular/core/rxjs-interop';
 import { NonNullableFormBuilder } from '@angular/forms';
 import { Router } from '@angular/router';
@@ -16,7 +16,6 @@ import {
 } from 'rxjs';
 import { toApiError } from '@core/api/error.model';
 import { SessionStore } from '@core/auth/session.store';
-import { MARKETS } from '@core/config/enrollment.config';
 import {
   EnrollmentErrors,
   EnrollmentInput,
@@ -63,7 +62,7 @@ export class EnrollmentStore {
   private readonly session = inject(SessionStore);
   private readonly destroyRef = inject(DestroyRef);
 
-  readonly form = createEnrollmentForm(inject(NonNullableFormBuilder), this.defaultMarket());
+  readonly form = createEnrollmentForm(inject(NonNullableFormBuilder));
   readonly step = signal(0);
   readonly errors = signal<EnrollmentErrors>({});
   readonly phoneCheck = signal<PhoneCheckState>(PHONE_CHECK_IDLE);
@@ -79,14 +78,27 @@ export class EnrollmentStore {
   private readonly idempotencyKey = crypto.randomUUID();
 
   private readonly membershipFee = rxResource({ stream: () => this.api.membershipFee() });
-  readonly fee = computed(() => this.membershipFee.value() ?? 0);
+  // A resource in error throws on value(): always check hasValue() first.
+  readonly fee = computed(() => (this.membershipFee.hasValue() ? this.membershipFee.value() : 0));
   /** The fee shown must be the one in force on the server, never a silent default. */
   readonly feeReady = computed(() => this.membershipFee.hasValue());
   readonly feeFailed = computed(() => this.membershipFee.status() === 'error');
 
+  /** Markets, sectors and minimum savings, from the registry (or the mock). */
+  readonly options = rxResource({ stream: () => this.api.enrollmentOptions() });
+  private readonly optionValues = computed(() =>
+    this.options.hasValue() ? this.options.value() : null,
+  );
+  readonly markets = computed(() => this.optionValues()?.markets ?? []);
+  readonly sectors = computed(() => this.optionValues()?.sectors ?? []);
+  readonly minimumSavings = computed(() => this.optionValues()?.minimumSavings ?? 0);
+  /** Lists and rules must come from the server before anything can be checked or sent. */
+  readonly ready = computed(() => this.feeReady() && this.options.hasValue());
+  readonly loadFailed = computed(() => this.feeFailed() || this.options.status() === 'error');
+
   private readonly cutoff = rxResource({ stream: () => this.api.cutoffTime() });
-  private readonly cutoffTime = computed(
-    () => this.cutoff.value() ?? DEFAULT_SETTINGS.cashCutoffTime,
+  private readonly cutoffTime = computed(() =>
+    this.cutoff.hasValue() ? this.cutoff.value() : DEFAULT_SETTINGS.cashCutoffTime,
   );
   readonly cutoffLabel = computed(() => formatHourLabel(this.cutoffTime()));
   /** From the cut-off on, the payment is booked on the next business day (J+1). */
@@ -109,6 +121,7 @@ export class EnrollmentStore {
   private readonly submits = new Subject<EnrollmentInput>();
 
   constructor() {
+    this.preselectMarket();
     this.watchPhoneChecks();
     this.watchSubmits();
     this.clearErrorsOnEdit();
@@ -160,17 +173,19 @@ export class EnrollmentStore {
       .subscribe(() => this.leave());
   }
 
+  /** "Réessayer" after the fee or the lists could not be loaded. */
   reloadFee(): void {
-    this.membershipFee.reload();
+    if (this.membershipFee.status() === 'error') this.membershipFee.reload();
+    if (this.options.status() === 'error') this.options.reload();
   }
 
   /** Same check as "Continuer": an unpaid registration is never sent. */
   submit(): void {
-    if (!this.feeReady()) return;
+    if (!this.ready()) return;
     const errors = this.currentStepErrors();
     this.errors.set(errors);
     if (hasErrors(errors)) return;
-    this.submits.next(toEnrollmentInput(this.form.getRawValue()));
+    this.submits.next(this.input());
   }
 
   uploadPhoto(field: PhotoField, file: File): void {
@@ -188,8 +203,10 @@ export class EnrollmentStore {
   }
 
   private currentStepErrors(): EnrollmentErrors {
-    const input = toEnrollmentInput(this.form.getRawValue());
-    const errors = validateStep(this.step(), input, this.fee());
+    const errors = validateStep(this.step(), this.input(), {
+      fee: this.fee(),
+      minimumSavings: this.minimumSavings(),
+    });
     const phoneTaken = this.step() === 0 && this.phoneCheck().state === 'taken';
     return phoneTaken ? { ...errors, phone: PHONE_TAKEN_MESSAGE } : errors;
   }
@@ -285,7 +302,19 @@ export class EnrollmentStore {
     void this.router.navigateByUrl(HOME);
   }
 
-  private defaultMarket(): string {
-    return MARKETS.find((m) => m === this.session.user()?.zone) ?? MARKETS[0];
+  private input() {
+    return toEnrollmentInput(this.form.getRawValue(), this.sectors());
+  }
+
+  /** Once the markets are known: the agent's zone if listed, else the first market. */
+  private preselectMarket(): void {
+    effect(() => {
+      const markets = this.markets();
+      const control = this.form.controls.market;
+      if (!markets.length || control.value) return;
+      const zone = this.session.user()?.zone;
+      const mine = markets.find((m) => m.value === zone || m.label === zone);
+      control.setValue((mine ?? markets[0]).value, { emitEvent: false });
+    });
   }
 }

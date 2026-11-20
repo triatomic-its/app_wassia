@@ -1,6 +1,6 @@
 <div class="grid grid-cols-2 gap-2.5">
   <app-photo-capture
-    label="Pièce d'identité (CNI)"
+    label="Pièce d'identité"
     [url]="photoUrls().idDocUrl"
     [busy]="uploads().idDocUrl.busy"
     [error]="uploads().idDocUrl.error ?? errors().idDocUrl"
@@ -15,12 +15,20 @@
   />
 </div>
 
-<app-field
-  label="Numéro de la pièce d'identité"
-  for="en-id"
-  [required]="true"
-  [error]="errors().idNumber"
->
+<app-field label="Pièce d'identité" for="en-id-type" [required]="true" [error]="errors().idType">
+  <select
+    id="en-id-type"
+    appInput
+    [formControl]="form().controls.idType"
+    aria-describedby="en-id-type-msg"
+  >
+    @for (t of idTypes; track t.value) {
+      <option [value]="t.value">{{ t.label }}</option>
+    }
+  </select>
+</app-field>
+
+<app-field label="Numéro de la pièce" for="en-id" [required]="true" [error]="errors().idNumber">
   <input
     id="en-id"
     appInput
@@ -32,19 +40,17 @@
   />
 </app-field>
 
-<app-field label="Activité" for="en-trade" [required]="true" [error]="errors().trade">
-  <input
-    id="en-trade"
+<app-field label="Secteur d'activité" for="en-sector" [required]="true" [error]="errors().sector">
+  <select
+    id="en-sector"
     appInput
-    list="en-trades"
-    placeholder="Vente de pagnes"
-    [formControl]="form().controls.trade"
-    [attr.aria-invalid]="!!errors().trade"
-    aria-describedby="en-trade-msg"
-  />
-  <datalist id="en-trades">
-    @for (t of trades; track t) {
-      <option [value]="t"></option>
+    [formControl]="form().controls.sector"
+    [attr.aria-invalid]="!!errors().sector"
+    aria-describedby="en-sector-msg"
+  >
+    <option value="" disabled>Choisir le secteur</option>
+    @for (s of sectors(); track s.value) {
+      <option [value]="s.value">{{ s.label }}</option>
     }
-  </datalist>
+  </select>
 </app-field>

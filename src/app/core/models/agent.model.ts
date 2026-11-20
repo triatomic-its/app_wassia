@@ -41,3 +41,17 @@ export interface CardAssignResult {
   member: Member;
   card: Card;
 }
+
+/** One choice of a select list: the value sent to the server, the label shown. */
+export interface ChoiceOption {
+  value: string;
+  label: string;
+}
+
+/** Lists and rules the registration form needs (from the registry, or the mock). */
+export interface EnrollmentOptions {
+  markets: ChoiceOption[];
+  sectors: ChoiceOption[];
+  /** Minimum savings deposit the merchant can commit to. */
+  minimumSavings: Fcfa;
+}

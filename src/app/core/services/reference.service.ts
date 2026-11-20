@@ -13,6 +13,8 @@ export interface ReferenceItem {
 }
 
 export interface Market extends ReferenceItem {
+  /** Hash of the agency the market belongs to (sent with the enrollment file). */
+  agencyId: Hash;
   agencyCode: string;
 }
 
@@ -106,14 +108,19 @@ export function buildReference(
     };
   };
   const byLabel = (a: ReferenceItem, b: ReferenceItem) => a.label.localeCompare(b.label, 'fr');
-  const parentCode = (f: Fait, role: string) =>
-    codeOf.get(f.predecesseurs.find((p) => p.role === role)?.predecesseur ?? '') ?? '';
+  const parentId = (f: Fait, role: string) =>
+    f.predecesseurs.find((p) => p.role === role)?.predecesseur ?? '';
+  const parentCode = (f: Fait, role: string) => codeOf.get(parentId(f, role)) ?? '';
 
   return {
     agencies: agencies.map(item).sort(byLabel),
     poles: poles.map(item).sort(byLabel),
     markets: full.markets
-      .map((m) => ({ ...item(m), agencyCode: parentCode(m, 'agence') }))
+      .map((m) => ({
+        ...item(m),
+        agencyId: parentId(m, 'agence'),
+        agencyCode: parentCode(m, 'agence'),
+      }))
       .sort(byLabel),
     sectors: full.sectors
       .map((s) => ({ ...item(s), poleCode: parentCode(s, 'pole') }))

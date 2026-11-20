@@ -18,6 +18,16 @@ function createApi() {
     checkPhone: vi.fn(() => of<PhoneCheck>({ available: true })),
     membershipFee: vi.fn(() => of(1_000)),
     cutoffTime: vi.fn(() => of('16:00')),
+    enrollmentOptions: vi.fn(() =>
+      of({
+        markets: [
+          { value: 'Adjamé', label: 'Adjamé' },
+          { value: 'Marcory', label: 'Marcory' },
+        ],
+        sectors: [{ value: 'commerce', label: 'Commerce général' }],
+        minimumSavings: 2_000,
+      }),
+    ),
     enroll: vi.fn(),
     upload: vi.fn(),
   };
@@ -63,42 +73,70 @@ function render(configure?: (api: ApiStub) => void) {
     button.click();
     fixture.detectChanges();
   };
-  const fillUntilPayment = () => {
-    type('en-name', 'Mariam Traoré');
+  const choose = (id: string, value: string) => {
+    const select = query<HTMLSelectElement>(`#${id}`);
+    select.value = value;
+    select.dispatchEvent(new Event('change'));
+    fixture.detectChanges();
+  };
+  /** Ticks the checkbox whose label contains this text. */
+  const tick = (label: string) => {
+    const box = [...el.querySelectorAll('label')]
+      .find((l) => l.textContent?.includes(label))
+      ?.querySelector<HTMLInputElement>('input[type="checkbox"]');
+    if (!box) throw new Error(`No checkbox: ${label}`);
+    box.checked = true;
+    box.dispatchEvent(new Event('change'));
+    fixture.detectChanges();
+  };
+  const fillIdentity = () => {
+    type('en-last-name', 'TRAORÉ');
+    type('en-first-names', 'Mariam');
     type('en-phone', '0700000009');
+  };
+  const fillUntilPayment = () => {
+    fillIdentity();
     click('Continuer');
     store.form.controls.idDocUrl.setValue('mock-upload://a');
     store.form.controls.photoUrl.setValue('mock-upload://b');
     fixture.detectChanges();
     type('en-id', 'CI 1234 5678');
-    type('en-trade', 'Vente de pagnes');
+    choose('en-sector', 'commerce');
+    click('Continuer');
+    type('en-ref-name', 'Fatou Traoré');
+    type('en-ref-link', 'sœur');
+    type('en-ref-phone', '0500000009');
+    tick("sait qu'elle");
+    type('en-savings', '2 000');
+    type('en-goal', 'Acheter du stock');
+    tick("s'engage");
     click('Continuer');
   };
   /** Visible text with non-breaking spaces (money formatting) turned into plain spaces. */
   const text = () => (el.textContent ?? '').replace(NON_BREAKING_SPACES, ' ');
-  return { fixture, el, query, type, click, api, fillUntilPayment, text };
+  return { fixture, el, query, type, click, tick, api, fillIdentity, fillUntilPayment, text };
 }
 
 describe('EnrollPage', () => {
-  it('starts on step 1 of 3 with the agent’s market preselected', () => {
+  it('starts on step 1 of 4 with the agent’s market preselected', () => {
     const { el, query } = render();
     expect(el.textContent).toContain('Identité du marchand');
-    expect(el.textContent).toContain('Étape 1 sur 3');
+    expect(el.textContent).toContain('Étape 1 sur 4');
     expect(query<HTMLSelectElement>('#en-market').value).toBe('Marcory');
   });
 
   it('blocks "Continuer" and explains what is missing', () => {
     const { el, click } = render();
     click('Continuer');
-    expect(el.textContent).toContain('Étape 1 sur 3');
-    expect(el.textContent).toContain('Écrivez le nom et les prénoms.');
+    expect(el.textContent).toContain('Étape 1 sur 4');
+    expect(el.textContent).toContain('Écrivez le nom.');
+    expect(el.textContent).toContain('Écrivez les prénoms.');
     expect(el.textContent).toContain('Écrivez le numéro de téléphone.');
   });
 
   it('requires both photos on step 2', () => {
-    const { el, type, click } = render();
-    type('en-name', 'Mariam Traoré');
-    type('en-phone', '0700000009');
+    const { el, click, fillIdentity } = render();
+    fillIdentity();
     click('Continuer');
     click('Continuer');
     expect(el.textContent).toContain('Prenez la photo de la pièce d’identité.');
@@ -108,14 +146,14 @@ describe('EnrollPage', () => {
   it('asks for the 1 000 F before going further', () => {
     const { el, click, fillUntilPayment, text } = render();
     fillUntilPayment();
-    expect(el.textContent).toContain('Paiement de l’adhésion');
+    expect(el.textContent).toContain('Paiement et accord');
     expect(text()).toContain('1 000 F');
     click('Enregistrer le membre');
     expect(el.textContent).toContain('Choisissez : espèces ou Wave.');
   });
 
   it('requires the cash confirmation, then registers and opens the card scan', () => {
-    const { query, click, fixture, fillUntilPayment, text, api } = render();
+    const { query, click, tick, fixture, fillUntilPayment, text, api } = render();
     const navigate = vi.spyOn(TestBed.inject(Router), 'navigate').mockResolvedValue(true);
     api.enroll.mockReturnValue(of({ member: { id: 'm-new' }, payment: {} }));
     fillUntilPayment();
@@ -125,23 +163,31 @@ describe('EnrollPage', () => {
     click('Enregistrer le membre');
     expect(text()).toContain('Confirmez que vous avez reçu les 1 000 F.');
     expect(api.enroll).not.toHaveBeenCalled();
-    const box = query<HTMLInputElement>('input[type="checkbox"]');
-    box.checked = true;
-    box.dispatchEvent(new Event('change'));
-    fixture.detectChanges();
+    tick('J’ai reçu');
+    click('Enregistrer le membre');
+    expect(text()).toContain('Le marchand doit donner son accord.');
+    expect(api.enroll).not.toHaveBeenCalled();
+    tick('Le marchand accepte');
     click('Enregistrer le membre');
     expect(api.enroll).toHaveBeenCalledWith(
       expect.objectContaining({
         paymentChannel: 'CASH',
         paymentConfirmed: true,
         phone: '07 00 00 00 09',
+        lastName: 'TRAORÉ',
+        firstNames: 'Mariam',
+        sector: 'commerce',
+        trade: 'Commerce général',
+        referentPhone: '05 00 00 00 09',
+        savingsAmount: 2_000,
+        consentAccepted: true,
       }),
       expect.any(String),
     );
     expect(navigate).toHaveBeenCalledWith(['/agent/inscriptions', 'm-new', 'carte']);
   });
 
-  it('asks for the Wave confirmation when paid by Wave', () => {
+  it('asks for the Wave confirmation and its reference when paid by Wave', () => {
     const { el, query, fixture, fillUntilPayment } = render();
     fillUntilPayment();
     query<HTMLInputElement>('input[value="WAVE"]').dispatchEvent(new Event('change'));
@@ -151,8 +197,8 @@ describe('EnrollPage', () => {
   });
 
   it('keeps nothing on the device', () => {
-    const { type } = render();
-    type('en-name', 'Mariam Traoré');
+    const { fillIdentity } = render();
+    fillIdentity();
     expect(Object.keys(localStorage).filter((k) => k.includes('draft'))).toEqual([]);
   });
 
@@ -166,18 +212,17 @@ describe('EnrollPage', () => {
   });
 
   it('ignores a late answer for a number the agent has since corrected', () => {
-    const { el, query, type, fixture, api, click } = render();
+    const { el, query, type, fixture, api, click, fillIdentity } = render();
     const late = new Subject<PhoneCheck>();
     api.checkPhone.mockReturnValue(late);
-    type('en-name', 'Mariam Traoré');
-    type('en-phone', '0700000009');
+    fillIdentity();
     query<HTMLInputElement>('#en-phone').dispatchEvent(new Event('blur'));
     type('en-phone', '0700000010');
     late.next({ available: false, existingName: 'K*** D***' });
     fixture.detectChanges();
     expect(el.textContent).not.toContain('Déjà inscrit');
     click('Continuer');
-    expect(el.textContent).toContain('Étape 2 sur 3');
+    expect(el.textContent).toContain('Étape 2 sur 4');
   });
 
   it('shows a failed phone check, but stays silent when offline', () => {
@@ -197,18 +242,17 @@ describe('EnrollPage', () => {
     expect(el.textContent).not.toContain("vérifié à l'enregistrement");
   });
 
-  it('does not offer "Enregistrer" until the configured fee is known', () => {
-    const { el, fillUntilPayment } = render((api) => api.membershipFee.mockReturnValue(NEVER));
-    fillUntilPayment();
-    const save = [...el.querySelectorAll('button')].find(
-      (b) => b.textContent?.trim() === 'Enregistrer le membre',
+  it('shows nothing to fill in until the fee in force is known', () => {
+    const { el } = render((api) => api.membershipFee.mockReturnValue(NEVER));
+    expect(el.querySelector('#en-last-name')).toBeNull();
+    const next = [...el.querySelectorAll('button')].find(
+      (b) => b.textContent?.trim() === 'Continuer',
     );
-    expect(save?.disabled).toBe(true);
-    expect(el.querySelector('app-payment-step')).toBeNull();
+    expect(next?.disabled).toBe(true);
   });
 
   it('sends the same idempotency key when the agent retries after a failure', () => {
-    const { query, click, fixture, fillUntilPayment, api } = render();
+    const { query, click, tick, fixture, fillUntilPayment, api } = render();
     vi.spyOn(TestBed.inject(Router), 'navigate').mockResolvedValue(true);
     api.enroll
       .mockReturnValueOnce(throwError(() => new HttpErrorResponse({ status: 500 })))
@@ -216,10 +260,8 @@ describe('EnrollPage', () => {
     fillUntilPayment();
     query<HTMLInputElement>('input[value="CASH"]').dispatchEvent(new Event('change'));
     fixture.detectChanges();
-    const box = query<HTMLInputElement>('input[type="checkbox"]');
-    box.checked = true;
-    box.dispatchEvent(new Event('change'));
-    fixture.detectChanges();
+    tick('J’ai reçu');
+    tick('Le marchand accepte');
     click('Enregistrer le membre');
     click('Enregistrer le membre');
     expect(api.enroll).toHaveBeenCalledTimes(2);
@@ -236,5 +278,34 @@ describe('EnrollPage', () => {
     fillUntilPayment();
     fixture.detectChanges();
     expect(text()).toContain('Il est plus de 16 h 00 : ce paiement sera compté demain.');
+  });
+});
+
+describe('EnrollPage — lists from the server', () => {
+  it('waits for the markets and the rules, and offers a retry when they fail', async () => {
+    const failing = new Subject<never>();
+    TestBed.configureTestingModule({
+      imports: [EnrollPage],
+      providers: [
+        provideRouter([]),
+        {
+          provide: AgentApi,
+          useValue: {
+            membershipFee: () => of(1_000),
+            cutoffTime: () => of('16:00'),
+            checkPhone: () => of({ available: true }),
+            enrollmentOptions: () => failing,
+          },
+        },
+      ],
+    });
+    const fixture = TestBed.createComponent(EnrollPage);
+    fixture.detectChanges();
+    const el = fixture.nativeElement as HTMLElement;
+    expect(el.querySelector('#en-last-name')).toBeNull();
+    failing.error(new HttpErrorResponse({ status: 0 }));
+    await fixture.whenStable();
+    fixture.detectChanges();
+    expect(el.textContent).toContain('Impossible de préparer');
   });
 });

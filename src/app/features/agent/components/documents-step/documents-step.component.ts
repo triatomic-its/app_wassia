@@ -1,7 +1,8 @@
 import { ChangeDetectionStrategy, Component, input, output } from '@angular/core';
 import { ReactiveFormsModule } from '@angular/forms';
-import { TRADE_SUGGESTIONS } from '@core/config/enrollment.config';
+import { ID_TYPE_OPTIONS } from '@core/config/enrollment.config';
 import { EnrollmentErrors } from '@core/domain/enrollment';
+import { ChoiceOption } from '@core/models';
 import { Field } from '@shared/components/field/field.component';
 import { InputDirective } from '@shared/directives/input.directive';
 import { EnrollmentForm, PhotoField, UploadState } from '../../models/enrollment-form.model';
@@ -12,7 +13,7 @@ export interface PickedPhoto {
   file: File;
 }
 
-/** Step 2 — ID card and stall photos, ID number, trade. */
+/** Step 2 — ID document (type, number, photo), stall photo, sector of activity. */
 @Component({
   selector: 'app-documents-step',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -23,9 +24,10 @@ export interface PickedPhoto {
 export class DocumentsStep {
   readonly form = input.required<EnrollmentForm>();
   readonly errors = input.required<EnrollmentErrors>();
+  readonly sectors = input.required<readonly ChoiceOption[]>();
   readonly photoUrls = input.required<Record<PhotoField, string>>();
   readonly uploads = input.required<Record<PhotoField, UploadState>>();
   readonly photoPicked = output<PickedPhoto>();
 
-  protected readonly trades = TRADE_SUGGESTIONS;
+  protected readonly idTypes = ID_TYPE_OPTIONS;
 }

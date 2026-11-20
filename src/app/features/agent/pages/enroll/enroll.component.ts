@@ -18,13 +18,14 @@ import {
   DocumentsStep,
   PickedPhoto,
 } from '../../components/documents-step/documents-step.component';
+import { CommitmentStep } from '../../components/commitment-step/commitment-step.component';
 import { IdentityStep } from '../../components/identity-step/identity-step.component';
 import { PaymentStep } from '../../components/payment-step/payment-step.component';
 import { StepBars } from '../../components/step-bars/step-bars.component';
 
 /**
- * "Inscrire un marchand" (client rule, 2026-11-10): registered only once the fee is received
- * on the spot; the QR card is scanned on the next screen. All state lives in `EnrollmentStore`.
+ * "Inscrire un marchand": the registry's enrollment file in four short steps, registered only
+ * once the 1 000 F are received on the spot; the QR card is scanned on the next screen.
  */
 @Component({
   selector: 'app-enroll-page',
@@ -37,6 +38,7 @@ import { StepBars } from '../../components/step-bars/step-bars.component';
     StepBars,
     IdentityStep,
     DocumentsStep,
+    CommitmentStep,
     PaymentStep,
   ],
   providers: [EnrollmentStore],

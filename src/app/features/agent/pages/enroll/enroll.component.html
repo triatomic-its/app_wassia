@@ -16,26 +16,35 @@
   </h2>
 </div>
 
-@switch (store.step()) {
-  @case (0) {
-    <app-identity-step
-      [form]="store.form"
-      [errors]="store.errors()"
-      [phoneCheck]="store.phoneCheck()"
-      (phoneLeft)="store.checkPhone()"
-    />
-  }
-  @case (1) {
-    <app-documents-step
-      [form]="store.form"
-      [errors]="store.errors()"
-      [photoUrls]="store.photoUrls()"
-      [uploads]="store.uploads()"
-      (photoPicked)="uploadPhoto($event)"
-    />
-  }
-  @case (2) {
-    @if (store.feeReady()) {
+@if (store.ready()) {
+  @switch (store.step()) {
+    @case (0) {
+      <app-identity-step
+        [form]="store.form"
+        [errors]="store.errors()"
+        [phoneCheck]="store.phoneCheck()"
+        [markets]="store.markets()"
+        (phoneLeft)="store.checkPhone()"
+      />
+    }
+    @case (1) {
+      <app-documents-step
+        [form]="store.form"
+        [errors]="store.errors()"
+        [sectors]="store.sectors()"
+        [photoUrls]="store.photoUrls()"
+        [uploads]="store.uploads()"
+        (photoPicked)="uploadPhoto($event)"
+      />
+    }
+    @case (2) {
+      <app-commitment-step
+        [form]="store.form"
+        [errors]="store.errors()"
+        [minimumSavings]="store.minimumSavings()"
+      />
+    }
+    @case (3) {
       <app-payment-step
         [form]="store.form"
         [errors]="store.errors()"
@@ -47,15 +56,15 @@
           Il est plus de {{ store.cutoffLabel() }} : ce paiement sera compté demain.
         </app-alert>
       }
-    } @else if (store.feeFailed()) {
-      <app-error-state
-        message="Impossible de connaître le montant de l'adhésion."
-        (retry)="store.reloadFee()"
-      />
-    } @else {
-      <app-skeleton [lines]="3" />
     }
   }
+} @else if (store.loadFailed()) {
+  <app-error-state
+    message="Impossible de préparer l'inscription : la liste des marchés ou le montant de l'adhésion manque."
+    (retry)="store.reloadFee()"
+  />
+} @else {
+  <app-skeleton [lines]="4" />
 }
 
 <div aria-live="assertive">
@@ -86,7 +95,7 @@
       variant="success"
       type="button"
       class="flex-[2]"
-      [disabled]="store.submitting() || !store.feeReady()"
+      [disabled]="store.submitting() || !store.ready()"
       (click)="store.submit()"
     >
       {{ store.submitting() ? 'Enregistrement…' : 'Enregistrer le membre' }}
@@ -97,6 +106,7 @@
       variant="success"
       type="button"
       class="flex-[2]"
+      [disabled]="!store.ready()"
       (click)="continueToNextStep()"
     >
       Continuer

@@ -93,3 +93,20 @@
     </p>
   }
 }
+
+<label
+  class="flex min-h-14 cursor-pointer items-center gap-3 rounded-control border-[1.5px] p-3.5 font-semibold has-[:checked]:border-sapin has-[:checked]:bg-sapin-soft"
+  [class]="errors().consentAccepted ? 'border-danger bg-surface' : 'border-border bg-surface'"
+>
+  <input
+    type="checkbox"
+    class="size-6 shrink-0 accent-sapin"
+    [formControl]="form().controls.consentAccepted"
+  />
+  Le marchand accepte que WASSIA garde ses informations et lui remette une carte QR
+</label>
+@if (errors().consentAccepted) {
+  <p class="-mt-1.5 text-sm font-semibold text-danger" role="alert">
+    {{ errors().consentAccepted }}
+  </p>
+}

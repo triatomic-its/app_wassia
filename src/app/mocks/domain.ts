@@ -1,3 +1,4 @@
+import { PRODUCT_RULES_SNAPSHOT } from '@core/config/product-rules.defaults';
 import {
   EnrollmentInput,
   formatPhone,
@@ -126,7 +127,7 @@ export function enrollMember(
   if (previous) return previous;
 
   const fee = membershipFeeOf(data.paymentTypes);
-  const errors = validateEnrollment(input, fee);
+  const errors = validateEnrollment(input, fee, PRODUCT_RULES_SNAPSHOT.minimumSavings);
   if (hasErrors(errors)) {
     throw fail(
       422,

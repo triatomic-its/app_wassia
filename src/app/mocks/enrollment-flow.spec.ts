@@ -1,3 +1,4 @@
+import { COMPLETE_ENROLLMENT } from '@core/domain/enrollment.fixture';
 import {
   HttpClient,
   HttpErrorResponse,
@@ -16,17 +17,7 @@ import { MockControl } from './control';
 import { MockDb } from './db';
 import { mockBackendInterceptor } from './mock-backend.interceptor';
 
-const MERCHANT = {
-  fullName: 'Awa Test',
-  phone: '07 99 88 77 66',
-  market: 'Adjamé',
-  trade: 'Vente de pagnes',
-  idNumber: 'CI 1234 5678',
-  idDocUrl: 'mock-upload://cni',
-  photoUrl: 'mock-upload://shop',
-  paymentChannel: 'CASH' as const,
-  paymentConfirmed: true,
-};
+const MERCHANT = { ...COMPLETE_ENROLLMENT, phone: '07 99 88 77 66', fullName: 'Awa Test' };
 
 async function setup() {
   localStorage.clear();

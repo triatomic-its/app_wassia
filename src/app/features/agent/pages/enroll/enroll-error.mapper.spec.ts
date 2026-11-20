@@ -42,6 +42,6 @@ describe('mapEnrollmentFailure', () => {
 
 describe('firstStepWithError', () => {
   it('defaults to the last step when no error is known', () => {
-    expect(firstStepWithError({})).toBe(2);
+    expect(firstStepWithError({})).toBe(3);
   });
 });

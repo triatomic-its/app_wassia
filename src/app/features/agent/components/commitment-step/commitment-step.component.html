@@ -1,0 +1,133 @@
+<h3 class="mt-1 font-display text-base font-bold text-night">Personne de confiance</h3>
+
+<app-field
+  label="Nom et prénoms"
+  for="en-ref-name"
+  [required]="true"
+  [error]="errors().referentName"
+>
+  <input
+    id="en-ref-name"
+    appInput
+    autocomplete="off"
+    [formControl]="form().controls.referentName"
+    [attr.aria-invalid]="!!errors().referentName"
+    aria-describedby="en-ref-name-msg"
+  />
+</app-field>
+
+<app-field
+  label="Lien avec le marchand"
+  for="en-ref-link"
+  [required]="true"
+  hint="Exemple : frère, voisine, époux"
+  [error]="errors().referentLink"
+>
+  <input
+    id="en-ref-link"
+    appInput
+    autocomplete="off"
+    [formControl]="form().controls.referentLink"
+    [attr.aria-invalid]="!!errors().referentLink"
+    aria-describedby="en-ref-link-msg"
+  />
+</app-field>
+
+<app-field label="Téléphone" for="en-ref-phone" [required]="true" [error]="errors().referentPhone">
+  <input
+    id="en-ref-phone"
+    appInput
+    type="tel"
+    inputmode="tel"
+    autocomplete="off"
+    placeholder="05 00 00 00 00"
+    [formControl]="form().controls.referentPhone"
+    [attr.aria-invalid]="!!errors().referentPhone"
+    aria-describedby="en-ref-phone-msg"
+  />
+</app-field>
+
+<label
+  class="flex min-h-14 cursor-pointer items-center gap-3 rounded-control border-[1.5px] p-3.5 font-semibold has-[:checked]:border-sapin has-[:checked]:bg-sapin-soft"
+  [class]="errors().referentInformed ? 'border-danger bg-surface' : 'border-border bg-surface'"
+>
+  <input
+    type="checkbox"
+    class="size-6 shrink-0 accent-sapin"
+    [formControl]="form().controls.referentInformed"
+  />
+  Cette personne sait qu'elle est nommée
+</label>
+@if (errors().referentInformed) {
+  <p class="-mt-1.5 text-sm font-semibold text-danger" role="alert">
+    {{ errors().referentInformed }}
+  </p>
+}
+
+<h3 class="mt-3 font-display text-base font-bold text-night">Engagement d'épargne</h3>
+
+<app-field
+  label="Montant de chaque versement"
+  for="en-savings"
+  [required]="true"
+  [hint]="'Au moins ' + (minimumSavings() | fcfa)"
+  [error]="errors().savingsAmount"
+>
+  <input
+    id="en-savings"
+    appInput
+    inputmode="numeric"
+    autocomplete="off"
+    [placeholder]="minimumSavings() | fcfa"
+    [formControl]="form().controls.savingsAmount"
+    [attr.aria-invalid]="!!errors().savingsAmount"
+    aria-describedby="en-savings-msg"
+  />
+</app-field>
+
+<app-field label="Quand ?" for="en-frequency" [required]="true" [error]="errors().savingsFrequency">
+  <select
+    id="en-frequency"
+    appInput
+    [formControl]="form().controls.savingsFrequency"
+    aria-describedby="en-frequency-msg"
+  >
+    @for (f of frequencies; track f.value) {
+      <option [value]="f.value">{{ f.label }}</option>
+    }
+  </select>
+</app-field>
+
+<app-field
+  label="À quoi servira l'épargne ?"
+  for="en-goal"
+  [required]="true"
+  hint="Exemple : acheter du stock"
+  [error]="errors().savingsGoal"
+>
+  <input
+    id="en-goal"
+    appInput
+    autocomplete="off"
+    [formControl]="form().controls.savingsGoal"
+    [attr.aria-invalid]="!!errors().savingsGoal"
+    aria-describedby="en-goal-msg"
+  />
+</app-field>
+
+<label
+  class="flex min-h-14 cursor-pointer items-center gap-3 rounded-control border-[1.5px] p-3.5 font-semibold has-[:checked]:border-sapin has-[:checked]:bg-sapin-soft"
+  [class]="errors().commitmentAccepted ? 'border-danger bg-surface' : 'border-border bg-surface'"
+>
+  <input
+    type="checkbox"
+    class="size-6 shrink-0 accent-sapin"
+    [formControl]="form().controls.commitmentAccepted"
+  />
+  Le marchand s'engage à épargner ainsi
+</label>
+@if (errors().commitmentAccepted) {
+  <p class="-mt-1.5 text-sm font-semibold text-danger" role="alert">
+    {{ errors().commitmentAccepted }}
+  </p>
+}
