@@ -31,7 +31,8 @@ import { Rng } from '../rng';
 import { ACCOUNTS, FIRST_NAMES, LAST_NAMES, SMS_TEMPLATES, TRADES } from './reference';
 
 /** Bump when the data shape or business rules change: old browser data is discarded. */
-export const MOCK_DATA_VERSION = 4;
+// v5 (2026-11-20): roles renamed to the registry codes (`agent`, `caissiere`…).
+export const MOCK_DATA_VERSION = 5;
 export const DEFAULT_SEED = 20261109;
 
 export interface MockData {

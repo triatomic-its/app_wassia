@@ -1,10 +1,19 @@
 import { Injectable, inject, signal } from '@angular/core';
+import { isRole } from '@core/models';
 import { ClockService } from '@core/services/clock.service';
 import { MOCK_DATA_VERSION, MockData, seedMockData } from './seed/seed';
 import { readJson, removeKey, writeJson } from './storage';
 
 /** Versioned key: bumping MOCK_DATA_VERSION discards old browser data. */
 export const DB_KEY = `wassia.mock.db.v${MOCK_DATA_VERSION}`;
+
+/**
+ * Stored data is kept only if it has the current version and only known roles: otherwise no
+ * user would match the logged-in role and every mock call would answer 401 (session expired).
+ */
+function isUsable(stored: MockData | null): stored is MockData {
+  return stored?.version === MOCK_DATA_VERSION && stored.users.every((u) => isRole(u.role));
+}
 
 /**
  * In-memory fake database, persisted in localStorage so a refresh keeps the demo state.
@@ -19,7 +28,7 @@ export class MockDb {
 
   constructor() {
     const stored = readJson<MockData>(DB_KEY);
-    this.data = stored?.version === MOCK_DATA_VERSION ? stored : this.seedAndSave();
+    this.data = isUsable(stored) ? stored : this.seedAndSave();
   }
 
   get snapshot(): Readonly<MockData> {
