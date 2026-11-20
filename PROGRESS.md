@@ -97,3 +97,10 @@
 - **Vérifié** : lint, 168 tests, build ; navigateur contre le serveur : carte vierge refusée (« associée à aucun marchand »), carte WAS-000003 → 1 000 F en espèces enregistrés en 0,4 s, reçu correct, aucune requête en échec.
 - **Reste** : 5b file hors connexion + `POST /synchronisations` ; 5c tournée de collecte.
 - **Hypothèses** : A36 ajoutée.
+
+## Intégration du registre — étape 5b : collecte hors connexion (2026-11-20)
+
+- **Fait** : `LocalStore` (IndexedDB, en mémoire pour les tests) ; `CollectOffline` : copie des cartes associées (rafraîchie à chaque scan en ligne), file des versements en espèces faits sans réseau, envoi par `POST /synchronisations` automatique au retour du réseau ou par « Envoyer maintenant », versements refusés montrés avec leur raison en français ; `RegistreAgentApi` bascule seule hors ligne (réseau coupé ou requête perdue) ; reçu « Versement gardé sur le téléphone » ; bandeau « N versements à envoyer » sur l'accueil et l'écran de collecte ; Wave refusé sans réseau.
+- **Vérifié** : lint, 173 tests, build ; navigateur avec coupure réelle : carte reconnue hors ligne, Wave refusé, 700 F gardés (solde serveur inchangé), retour du réseau → envoi automatique, bandeau vidé, solde serveur +700 F en attente.
+- **Reste** : 5c tournée de collecte. Côté back : 0 F accepté par la synchronisation, jetons de cartes lisibles par tous via `/faits`.
+- **Hypothèses** : A37 ajoutée.

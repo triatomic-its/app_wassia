@@ -1,0 +1,53 @@
+@if (offline.pending().length > 0) {
+  <section
+    class="flex flex-col gap-3 rounded-card border-[1.5px] border-accent bg-accent-soft p-4"
+    aria-live="polite"
+  >
+    <div class="flex items-center gap-3">
+      <span
+        class="flex size-10 shrink-0 items-center justify-center rounded-tile bg-accent text-night"
+        aria-hidden="true"
+      >
+        <ng-icon name="lucideCloudUpload" size="22" />
+      </span>
+      <div class="min-w-0 flex-1">
+        <p class="font-display font-bold text-ink">{{ title() }}</p>
+        <p class="text-sm text-accent-ink">
+          {{ offline.pendingTotal() | fcfa }} gardés sur le téléphone
+          @if (!online()) {
+            · ils partiront au retour du réseau
+          }
+        </p>
+      </div>
+    </div>
+    <button
+      appButton
+      variant="outline"
+      type="button"
+      [block]="true"
+      [disabled]="!online() || offline.syncing()"
+      (click)="offline.sync()"
+    >
+      {{ offline.syncing() ? 'Envoi…' : 'Envoyer maintenant' }}
+    </button>
+    @if (offline.syncError(); as message) {
+      <p class="text-sm font-semibold text-danger" role="alert">{{ message }}</p>
+    }
+  </section>
+}
+
+@for (d of offline.failed(); track d.key) {
+  <app-alert tone="danger" icon="lucideTriangleAlert">
+    <b>Versement refusé</b> : {{ d.amount | fcfa }} pour {{ d.fullName || 'un marchand' }}.
+    {{ d.error }}
+    <button
+      appButton
+      variant="outline"
+      type="button"
+      class="mt-2 min-h-11"
+      (click)="offline.dismiss(d.key)"
+    >
+      J'ai compris
+    </button>
+  </app-alert>
+}

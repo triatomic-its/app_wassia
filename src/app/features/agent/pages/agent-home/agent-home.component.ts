@@ -18,12 +18,13 @@ import { LinkTile } from '@shared/components/link-tile/link-tile.component';
 import { Skeleton } from '@shared/components/skeleton/skeleton.component';
 import { AgentHeader } from '@layout/agent-header.service';
 import { AgentHomeStore } from './agent-home.store';
+import { PendingDeposits } from '../../components/pending-deposits/pending-deposits.component';
 
 /** Agent home (mockup "Accueil du jour"): what to do now, in big buttons. */
 @Component({
   selector: 'app-agent-home-page',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [RouterLink, NgIcon, FcfaPipe, ErrorState, LinkTile, Skeleton],
+  imports: [RouterLink, NgIcon, FcfaPipe, ErrorState, LinkTile, Skeleton, PendingDeposits],
   providers: [
     AgentHomeStore,
     provideIcons({

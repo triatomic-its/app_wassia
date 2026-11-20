@@ -70,7 +70,10 @@ export interface SavingsBalance {
 export interface CollectTarget {
   member: Member;
   card: Pick<Card, 'id' | 'printedNumber' | 'status'>;
-  balance: SavingsBalance;
+  /** Unknown when found offline and never read online before. */
+  balance: SavingsBalance | null;
+  /** Found in the copy kept on the phone (no network). */
+  offline?: boolean;
 }
 
 export type DepositChannel = 'CASH' | 'WAVE';
@@ -85,5 +88,8 @@ export interface DepositInput {
 
 export interface DepositResult {
   payment: Payment;
-  balance: SavingsBalance;
+  /** Unknown when the deposit was kept on the phone. */
+  balance: SavingsBalance | null;
+  /** No network: kept on the phone, sent as soon as the connection is back. */
+  queued?: boolean;
 }

@@ -4,10 +4,12 @@ import {
   Observable,
   catchError,
   forkJoin,
+  from,
   map,
   of,
   shareReplay,
   switchMap,
+  tap,
   throwError,
 } from 'rxjs';
 import { ApiError } from '@core/api/error.model';
@@ -15,6 +17,8 @@ import { RegistreClient } from '@core/api/registre-client.service';
 import { REGISTRE } from '@core/api/registre-endpoints';
 import { RegistreFacts, predecessorOf, textOf } from '@core/api/registre-facts.service';
 import { ActorService } from '@core/auth/actor.service';
+import { PRODUCT_RULES_SNAPSHOT } from '@core/config/product-rules.defaults';
+import { businessDateOf } from '@core/domain/cash-cutoff';
 import { EnrollmentInput } from '@core/domain/enrollment';
 import {
   AgentToday,
@@ -31,6 +35,7 @@ import {
   Payment,
   PaymentType,
   PhoneCheck,
+  SavingsBalance,
 } from '@core/models';
 import {
   Enrollement,
@@ -42,9 +47,14 @@ import {
   Numerique,
   Solde,
 } from '@core/models/registre.model';
+import { ClockService } from '@core/services/clock.service';
+import { NetworkStatus } from '@core/services/network-status.service';
 import { ProductRulesService } from '@core/services/product-rules.service';
 import { ReferenceService } from '@core/services/reference.service';
 import type { AgentApi, MemberDetail } from './agent-api.service';
+import { CachedCard } from '../models/offline.model';
+import { CollectOffline } from './collect-offline.service';
+import { buildCollectableCards } from './collect-cards';
 import { MockAgentApi } from './mock-agent-api.service';
 import { depositCashKey, membershipCashKey, personToken, toDossier } from './registre-dossier';
 import { RegistreMemberFacts, buildAgentMembers, paymentTypeIdOf } from './registre-members';
@@ -64,6 +74,9 @@ export class RegistreAgentApi implements AgentApi {
   private readonly reference = inject(ReferenceService);
   private readonly actor = inject(ActorService);
   private readonly mock = inject(MockAgentApi);
+  private readonly offline = inject(CollectOffline);
+  private readonly network = inject(NetworkStatus);
+  private readonly clock = inject(ClockService);
 
   /** Merchants registered or given a card in this session: shown at once, without re-reading. */
   private readonly recent = new Map<Hash, MemberDetail>();
@@ -331,53 +344,56 @@ export class RegistreAgentApi implements AgentApi {
 
   /**
    * The scanned card → its merchant (any agent may collect) and their savings.
-   * Refused when the card is unknown or not associated yet.
+   * Online, the list of associated cards is also kept on the phone; without network, the card is
+   * looked up in that copy. Refused when the card is unknown or not associated yet.
    */
   findByCard(qrToken: string): Observable<CollectTarget> {
-    return this.cardHash(qrToken).pipe(
-      switchMap((card) =>
-        this.facts.detailedOfType('AssociationCarte').pipe(
-          map(
-            (links) =>
-              links
-                .filter((l) => predecessorOf(l, 'carte') === card)
-                .sort((a, b) => b.recuLe.localeCompare(a.recuLe))[0],
-          ),
-          switchMap((link) => {
-            const account = link && predecessorOf(link, 'compte');
-            if (!account) {
-              return throwError(() =>
-                apiError(
+    if (!this.network.online()) return this.findOffline(qrToken);
+    return this.collectableCards().pipe(
+      switchMap(({ cards, tokens }) => {
+        const card = cards.find((c) => c.key === qrToken);
+        if (!card) {
+          return throwError(() =>
+            tokens.has(qrToken)
+              ? apiError(
                   422,
                   'CARD_NOT_ASSIGNED',
                   'Cette carte n’est associée à aucun marchand. Associez-la d’abord.',
+                )
+              : apiError(
+                  404,
+                  'CARD_UNKNOWN',
+                  'Ce code n’est pas une carte WASSIA. Vérifiez la carte du marchand.',
                 ),
-              );
-            }
-            return forkJoin({
-              members: this.membersFromFacts(null),
-              balance: this.balance(account),
-            }).pipe(
-              switchMap(({ members, balance }) => {
-                const found = members.find((d) => d.member.id === account);
-                if (!found?.card) {
-                  return throwError(() => apiError(404, 'NOT_FOUND', 'Marchand introuvable.'));
-                }
-                const { id, printedNumber, status } = found.card;
-                return of({ member: found.member, card: { id, printedNumber, status }, balance });
-              }),
-            );
-          }),
-        ),
+          );
+        }
+        return this.balance(card.memberId).pipe(
+          tap((balance) => void this.offline.rememberBalance(card.memberId, balance)),
+          map((balance) => toTarget(card, balance)),
+        );
+      }),
+      catchError((e: unknown) =>
+        isNetworkError(e) ? this.findOffline(qrToken) : throwError(() => e),
       ),
     );
   }
 
   /**
    * Cash stays pending until the closure visa; Wave is booked at once. Replay-safe: the cash key
-   * and the Wave reference are the registry's idempotency keys.
+   * and the Wave reference are the registry's idempotency keys. Without network, a cash deposit
+   * is kept on the phone and sent later (`CollectOffline`); Wave needs the network.
    */
   deposit(input: DepositInput, idempotencyKey: string): Observable<DepositResult> {
+    if (!this.network.online()) return this.queueDeposit(input, idempotencyKey);
+    return this.depositOnline(input, idempotencyKey).pipe(
+      // The request may have reached the server: the queued copy has the same key (A37).
+      catchError((e: unknown) =>
+        isNetworkError(e) ? this.queueDeposit(input, idempotencyKey) : throwError(() => e),
+      ),
+    );
+  }
+
+  private depositOnline(input: DepositInput, idempotencyKey: string): Observable<DepositResult> {
     const agent = this.actor.current();
     return this.rules.cashDate().pipe(
       switchMap((dateValeur) => {
@@ -405,29 +421,89 @@ export class RegistreAgentApi implements AgentApi {
       }),
       switchMap((paymentId) =>
         this.balance(input.memberId).pipe(
-          map((balance): DepositResult => {
-            const cash = input.channel === 'CASH';
-            return {
-              balance,
-              payment: {
-                id: paymentId,
-                memberId: input.memberId,
-                typeId: paymentTypeIdOf('epargne'),
-                amount: input.amount,
-                channel: input.channel,
-                status: cash ? 'PENDING_CASH' : 'CONFIRMED',
-                externalRef: input.reference,
-                agentId: agent,
-                createdAt: new Date().toISOString(),
-              },
-            };
-          }),
+          tap((balance) => void this.offline.rememberBalance(input.memberId, balance)),
+          map((balance): DepositResult => ({
+            balance,
+            payment: toPayment(input, paymentId, agent),
+          })),
         ),
       ),
     );
   }
 
-  private balance(account: Hash): Observable<CollectTarget['balance']> {
+  private queueDeposit(input: DepositInput, idempotencyKey: string): Observable<DepositResult> {
+    if (input.channel === 'WAVE') {
+      return throwError(() =>
+        apiError(
+          0,
+          'OFFLINE_WAVE',
+          'Pas de réseau : le paiement Wave demande une connexion. Encaissez en espèces ou réessayez plus tard.',
+        ),
+      );
+    }
+    const agent = this.actor.current();
+    return forkJoin({
+      // Offline the rules may not load: the cut-off of the last copy is used.
+      rules: this.rules.rules().pipe(catchError(() => of(PRODUCT_RULES_SNAPSHOT))),
+      card: from(this.offline.cardOf(input.memberId)),
+    }).pipe(
+      switchMap(({ rules, card }) => {
+        const createdAt = new Date().toISOString();
+        return from(
+          this.offline.enqueue({
+            key: idempotencyKey,
+            memberId: input.memberId,
+            agentId: agent,
+            amount: input.amount,
+            dateValeur: businessDateOf(this.clock.now(), rules.cutoffTime),
+            createdAt,
+            fullName: card?.fullName ?? '',
+            printedNumber: card?.printedNumber ?? '',
+            state: 'pending',
+          }),
+        ).pipe(
+          map((): DepositResult => ({
+            queued: true,
+            balance: null,
+            payment: { ...toPayment(input, idempotencyKey, agent), createdAt },
+          })),
+        );
+      }),
+    );
+  }
+
+  private findOffline(qrToken: string): Observable<CollectTarget> {
+    return from(this.offline.findCard(qrToken)).pipe(
+      switchMap((card) =>
+        card
+          ? of({ ...toTarget(card, card.balance), offline: true })
+          : throwError(() =>
+              apiError(
+                0,
+                'OFFLINE_UNKNOWN_CARD',
+                'Pas de réseau, et cette carte n’est pas encore connue du téléphone. Réessayez quand le réseau revient.',
+              ),
+            ),
+      ),
+    );
+  }
+
+  /** Associated cards (kept on the phone as well) and every known QR token. */
+  private collectableCards(): Observable<{ cards: CachedCard[]; tokens: Set<string> }> {
+    return forkJoin({
+      qr: this.facts.ofType('CarteQr'),
+      links: this.facts.detailedOfType('AssociationCarte'),
+      members: this.membersFromFacts(null),
+    }).pipe(
+      map(({ qr, links, members }) => ({
+        cards: buildCollectableCards(qr, links, members),
+        tokens: new Set(qr.map((c) => textOf(c, 'jeton'))),
+      })),
+      tap(({ cards }) => void this.offline.cacheCards(cards)),
+    );
+  }
+
+  private balance(account: Hash): Observable<SavingsBalance> {
     return this.api
       .get<Solde>(REGISTRE.accountBalance(account))
       .pipe(map((s) => ({ booked: s.comptabilise, pending: s.enAttente, total: s.annonce })));
@@ -504,6 +580,44 @@ export class RegistreAgentApi implements AgentApi {
     );
     return this.cardNumbersCache;
   }
+}
+
+function toTarget(card: CachedCard, balance: SavingsBalance | null): CollectTarget {
+  return {
+    member: {
+      id: card.memberId,
+      fullName: card.fullName,
+      phone: '',
+      market: '',
+      trade: '',
+      agentId: '',
+      status: card.status,
+      savings: balance?.total ?? 0,
+      createdAt: '',
+      updatedAt: '',
+    },
+    card: { id: card.cardId, printedNumber: card.printedNumber, status: 'ASSIGNED' },
+    balance,
+  };
+}
+
+function toPayment(input: DepositInput, id: string, agent: Hash): Payment {
+  const cash = input.channel === 'CASH';
+  return {
+    id,
+    memberId: input.memberId,
+    typeId: paymentTypeIdOf('epargne'),
+    amount: input.amount,
+    channel: input.channel,
+    status: cash ? 'PENDING_CASH' : 'CONFIRMED',
+    externalRef: input.reference,
+    agentId: agent,
+    createdAt: new Date().toISOString(),
+  };
+}
+
+function isNetworkError(e: unknown): boolean {
+  return e instanceof HttpErrorResponse && e.status === 0;
 }
 
 function toPage<T>(items: readonly T[], size: number): Page<T> {

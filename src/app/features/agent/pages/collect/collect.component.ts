@@ -15,6 +15,7 @@ import { InputDirective } from '@shared/directives/input.directive';
 import { AbidjanDatePipe } from '@shared/pipes/abidjan-date.pipe';
 import { FcfaPipe } from '@shared/pipes/fcfa.pipe';
 import { CollectStore } from './collect.store';
+import { PendingDeposits } from '../../components/pending-deposits/pending-deposits.component';
 
 /** "Scanner et encaisser" then "Versement enregistré" (mockup). State lives in `CollectStore`. */
 @Component({
@@ -33,6 +34,7 @@ import { CollectStore } from './collect.store';
     InputDirective,
     AbidjanDatePipe,
     FcfaPipe,
+    PendingDeposits,
   ],
   providers: [CollectStore, provideIcons({ lucideCheck, lucideCircleCheck, lucideCreditCard })],
   host: { class: 'flex flex-col gap-3.5 md:mx-auto md:w-full md:max-w-xl' },
