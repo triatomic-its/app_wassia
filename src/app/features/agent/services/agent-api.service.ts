@@ -4,12 +4,16 @@ import { ApiClient } from '@core/api/api-client.service';
 import { API } from '@core/api/endpoints';
 import { toPageParams } from '@core/api/pagination';
 import { EnrollmentInput, phoneDigits } from '@core/domain/enrollment';
+import { membershipFeeOf } from '@core/domain/membership';
+import { ProductRulesService } from '@core/services/product-rules.service';
+import { environment } from '@env/environment';
 import {
   AgentToday,
   Card,
   CardAssignResult,
   CardLookup,
   EnrollmentResult,
+  Fcfa,
   Loan,
   Member,
   Page,
@@ -29,9 +33,24 @@ export interface MemberDetail {
 @Injectable({ providedIn: 'root' })
 export class AgentApi {
   private readonly api = inject(ApiClient);
+  private readonly rules = inject(ProductRulesService);
 
   today(): Observable<AgentToday> {
     return this.api.get<AgentToday>(API.agentToday);
+  }
+
+  /** Cash paid on the spot at enrollment: the registry rule, or the mock's payment types. */
+  membershipFee(): Observable<Fcfa> {
+    return environment.useRegistre
+      ? this.rules.rules().pipe(map((r) => r.membershipCashFee))
+      : this.paymentTypes().pipe(map(membershipFeeOf));
+  }
+
+  /** Cash cut-off time (`HH:mm`): the registry rule, or the mock's settings. */
+  cutoffTime(): Observable<string> {
+    return environment.useRegistre
+      ? this.rules.rules().pipe(map((r) => r.cutoffTime))
+      : this.today().pipe(map((t) => t.cutoffTime));
   }
 
   /** Payment types configured by the administration (membership fee, savings…). */

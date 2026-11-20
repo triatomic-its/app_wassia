@@ -25,7 +25,6 @@ import {
 } from '@core/domain/enrollment';
 import { DEFAULT_SETTINGS } from '@core/config/settings.defaults';
 import { formatHourLabel, isAfterCutoff } from '@core/domain/cash-cutoff';
-import { membershipFeeOf } from '@core/domain/membership';
 import { ClockService } from '@core/services/clock.service';
 import { ConfirmService } from '@shared/services/confirm.service';
 import { EnrollmentFailure, mapEnrollmentFailure } from './enroll-error.mapper';
@@ -79,15 +78,15 @@ export class EnrollmentStore {
   /** Same key for every retry of this registration: the server never creates it twice. */
   private readonly idempotencyKey = crypto.randomUUID();
 
-  private readonly paymentTypes = rxResource({ stream: () => this.api.paymentTypes() });
-  readonly fee = computed(() => membershipFeeOf(this.paymentTypes.value() ?? []));
-  /** The fee shown must be the one configured by the administration, never a silent default. */
-  readonly feeReady = computed(() => this.paymentTypes.hasValue());
-  readonly feeFailed = computed(() => this.paymentTypes.status() === 'error');
+  private readonly membershipFee = rxResource({ stream: () => this.api.membershipFee() });
+  readonly fee = computed(() => this.membershipFee.value() ?? 0);
+  /** The fee shown must be the one in force on the server, never a silent default. */
+  readonly feeReady = computed(() => this.membershipFee.hasValue());
+  readonly feeFailed = computed(() => this.membershipFee.status() === 'error');
 
-  private readonly today = rxResource({ stream: () => this.api.today() });
+  private readonly cutoff = rxResource({ stream: () => this.api.cutoffTime() });
   private readonly cutoffTime = computed(
-    () => this.today.value()?.cutoffTime ?? DEFAULT_SETTINGS.cashCutoffTime,
+    () => this.cutoff.value() ?? DEFAULT_SETTINGS.cashCutoffTime,
   );
   readonly cutoffLabel = computed(() => formatHourLabel(this.cutoffTime()));
   /** From the cut-off on, the payment is booked on the next business day (J+1). */
@@ -162,7 +161,7 @@ export class EnrollmentStore {
   }
 
   reloadFee(): void {
-    this.paymentTypes.reload();
+    this.membershipFee.reload();
   }
 
   /** Same check as "Continuer": an unpaid registration is never sent. */

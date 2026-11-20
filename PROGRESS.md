@@ -75,3 +75,10 @@
 - **Vérifié** : lint, 135 tests, build (initial 404 kB) ; dans le navigateur contre le serveur local : 12 comptes listés, agent → accueil agent, session gardée au rechargement, DG → supervision (390 et 1440 px).
 - **Reste** : étape 3 (règle produit, référentiel, date de caisse), puis parcours agent (étape 4).
 - **Hypothèses** : A31, A32 ajoutées.
+
+## Intégration du registre — étape 3 : règle produit, référentiel, date de caisse (2026-11-20)
+
+- **Fait** : `ProductRulesService` (10 champs de `RegleProduit` via `GET /regles/{champ}`, lus une fois par session, types vérifiés, nouvel essai après un échec ; `cashDate()` via `GET /caisse/date`) ; `ReferenceService` (agences, marchés → agence, pôles, secteurs → pôle, libellés `Descriptif`) ; montant d'adhésion et heure de coupure des écrans agent lus depuis le registre (`AgentApi.membershipFee()` / `cutoffTime()`, composants inchangés).
+- **Vérifié** : lint, 142 tests, build (initial 407 kB) ; navigateur : bandeau 16 h 00 et règles chargées une seule fois, aucun échec ; référentiel construit sur les vraies données (2 agences, 3 marchés, 5 pôles, 16 secteurs).
+- **Reste** : étape 4, parcours agent sur le registre (formulaire `DossierSaisi` avec marchés et secteurs du référentiel, `POST /enrolements`, `/especes` avec la date de caisse, association de carte).
+- **Hypothèses** : A33 ajoutée. À noter : dans le registre, le marché d'Adjamé est rattaché à l'agence de Treichville.

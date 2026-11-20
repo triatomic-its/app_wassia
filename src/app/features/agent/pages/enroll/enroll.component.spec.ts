@@ -3,7 +3,6 @@ import { Router, provideRouter } from '@angular/router';
 import { HttpErrorResponse } from '@angular/common/http';
 import { NEVER, Subject, of, throwError } from 'rxjs';
 import { SessionStore } from '@core/auth/session.store';
-import { DEFAULT_PAYMENT_TYPES } from '@core/config/payment-types.config';
 import { PhoneCheck } from '@core/models';
 import { ClockService } from '@core/services/clock.service';
 import { AgentApi } from '../../services/agent-api.service';
@@ -17,8 +16,8 @@ type ApiStub = ReturnType<typeof createApi>;
 function createApi() {
   return {
     checkPhone: vi.fn(() => of<PhoneCheck>({ available: true })),
-    paymentTypes: vi.fn(() => of([...DEFAULT_PAYMENT_TYPES])),
-    today: vi.fn(() => of({ cutoffTime: '16:00' })),
+    membershipFee: vi.fn(() => of(1_000)),
+    cutoffTime: vi.fn(() => of('16:00')),
     enroll: vi.fn(),
     upload: vi.fn(),
   };
@@ -199,7 +198,7 @@ describe('EnrollPage', () => {
   });
 
   it('does not offer "Enregistrer" until the configured fee is known', () => {
-    const { el, fillUntilPayment } = render((api) => api.paymentTypes.mockReturnValue(NEVER));
+    const { el, fillUntilPayment } = render((api) => api.membershipFee.mockReturnValue(NEVER));
     fillUntilPayment();
     const save = [...el.querySelectorAll('button')].find(
       (b) => b.textContent?.trim() === 'Enregistrer le membre',

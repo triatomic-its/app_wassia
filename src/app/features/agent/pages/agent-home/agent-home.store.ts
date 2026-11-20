@@ -15,8 +15,9 @@ export class AgentHomeStore {
 
   readonly today = rxResource({ stream: () => this.api.today() });
 
+  private readonly cutoff = rxResource({ stream: () => this.api.cutoffTime() });
   private readonly cutoffTime = computed(
-    () => this.today.value()?.cutoffTime ?? DEFAULT_SETTINGS.cashCutoffTime,
+    () => this.cutoff.value() ?? DEFAULT_SETTINGS.cashCutoffTime,
   );
   readonly cutoffLabel = computed(() => formatHourLabel(this.cutoffTime()));
   readonly countdown = computed(() =>

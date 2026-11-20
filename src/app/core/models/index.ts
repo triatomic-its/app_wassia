@@ -7,3 +7,4 @@ export * from './loan.model';
 export * from './misc.model';
 export * from './agent.model';
 export * from './tone.model';
+export * from './product-rules.model';
