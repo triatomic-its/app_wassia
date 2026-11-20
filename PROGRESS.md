@@ -60,3 +60,11 @@
   - Back-office : menu bleu marine repliable (256 px / 84 px, actif à liseré doré), barre haute blanche avec avatar et rôle, en-têtes de tableau en majuscules.
 - **Vérifié** : lint, 119 tests, build (initial 395 kB) ; captures à 390 px (connexion, accueil, inscription, mes inscriptions, associer la carte) et 1440 px (connexion, back-office).
 - **Reste** : les écrans back-office de la maquette (Supervision, Caisse…) seront construits dans ce style à leurs phases.
+
+## Intégration du back « Registre Wassia » — étapes 0 et 1 (2026-11-20)
+
+- **Décision** : le back fait foi partout (rôles, habilitations, règles, workflows) ; mode hybride (ce que le registre expose est branché, le reste reste sur le faux back) ; connexion de dev par choix d'un utilisateur du registre. Bandeau ajouté en tête de `CLAUDE.md`.
+- **Fait** : `docs/INTEGRATION_MAP.md` (correspondance appel par appel, demandes au back) ; `environment.useRegistre` / `registreBaseUrl` ; proxy `/registre` → `http://127.0.0.1:8080` (`proxy.conf.json`) ; `RegistreClient`, `REGISTRE` (tous les chemins de la spec), types `core/models/registre.model.ts` ; erreurs `{message}` du registre (409/422) converties en `ApiError` ; `isApiUrl` reconnaît le registre.
+- **Vérifié** : lint, 128 tests, build ; proxy testé contre le serveur local (`/sante`, `/caisse/date`).
+- **Reste** : étape 2 (rôles du back, habilitations, connexion par utilisateur du registre, script de seed), puis référentiel et parcours agent. **Bloquant côté back** : vues `/comptes`, `/cartes`, `/identites`, `/decisions`, `/habilitations`, `/baremes` en « erreur du registre », `/regles/{champ}` « registre indisponible ».
+- **Hypothèses** : A26 à A30 ajoutées ; A1, A2, A4, A5, A11, A15, A17 remplacées par le registre.

@@ -5,6 +5,9 @@ export const environment: Environment = {
   production: true,
   useMock: false,
   apiBaseUrl: '/api/v1',
+  // Public URL of the "Registre Wassia" API, to be provided by the back-end team.
+  useRegistre: true,
+  registreBaseUrl: '/registre',
   oidc: {
     authority: '',
     clientId: 'wassia-web',

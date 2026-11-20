@@ -1,5 +1,7 @@
 # API contract — WASSIA front-end ↔ back-end
 
+> **Since 2026-11-20 the real back end ("Registre Wassia", OpenAPI at `GET /openapi.json`) is the reference.** Routes it exposes are called directly (see `docs/INTEGRATION_MAP.md`); this document now only describes the **mock** routes that are still served by the fake back end under `/api/v1` until the real back end exposes an equivalent.
+
 Base path: `/api/v1`. JSON only. Dates are ISO 8601 UTC strings. Amounts are **integers in FCFA** (never decimals).
 
 ## Authentication
