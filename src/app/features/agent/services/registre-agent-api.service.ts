@@ -20,6 +20,9 @@ import {
   AgentToday,
   CardAssignResult,
   CardLookup,
+  CollectTarget,
+  DepositInput,
+  DepositResult,
   EnrollmentOptions,
   EnrollmentResult,
   Fcfa,
@@ -37,12 +40,13 @@ import {
   Hash,
   IsoDate,
   Numerique,
+  Solde,
 } from '@core/models/registre.model';
 import { ProductRulesService } from '@core/services/product-rules.service';
 import { ReferenceService } from '@core/services/reference.service';
 import type { AgentApi, MemberDetail } from './agent-api.service';
 import { MockAgentApi } from './mock-agent-api.service';
-import { membershipCashKey, personToken, toDossier } from './registre-dossier';
+import { depositCashKey, membershipCashKey, personToken, toDossier } from './registre-dossier';
 import { RegistreMemberFacts, buildAgentMembers, paymentTypeIdOf } from './registre-members';
 
 const CARD_NUMBER = /^WAS-\d+$/;
@@ -325,9 +329,117 @@ export class RegistreAgentApi implements AgentApi {
     return { member, payment };
   }
 
+  /**
+   * The scanned card → its merchant (any agent may collect) and their savings.
+   * Refused when the card is unknown or not associated yet.
+   */
+  findByCard(qrToken: string): Observable<CollectTarget> {
+    return this.cardHash(qrToken).pipe(
+      switchMap((card) =>
+        this.facts.detailedOfType('AssociationCarte').pipe(
+          map(
+            (links) =>
+              links
+                .filter((l) => predecessorOf(l, 'carte') === card)
+                .sort((a, b) => b.recuLe.localeCompare(a.recuLe))[0],
+          ),
+          switchMap((link) => {
+            const account = link && predecessorOf(link, 'compte');
+            if (!account) {
+              return throwError(() =>
+                apiError(
+                  422,
+                  'CARD_NOT_ASSIGNED',
+                  'Cette carte n’est associée à aucun marchand. Associez-la d’abord.',
+                ),
+              );
+            }
+            return forkJoin({
+              members: this.membersFromFacts(null),
+              balance: this.balance(account),
+            }).pipe(
+              switchMap(({ members, balance }) => {
+                const found = members.find((d) => d.member.id === account);
+                if (!found?.card) {
+                  return throwError(() => apiError(404, 'NOT_FOUND', 'Marchand introuvable.'));
+                }
+                const { id, printedNumber, status } = found.card;
+                return of({ member: found.member, card: { id, printedNumber, status }, balance });
+              }),
+            );
+          }),
+        ),
+      ),
+    );
+  }
+
+  /**
+   * Cash stays pending until the closure visa; Wave is booked at once. Replay-safe: the cash key
+   * and the Wave reference are the registry's idempotency keys.
+   */
+  deposit(input: DepositInput, idempotencyKey: string): Observable<DepositResult> {
+    const agent = this.actor.current();
+    return this.rules.cashDate().pipe(
+      switchMap((dateValeur) => {
+        if (input.channel === 'WAVE') {
+          const body: Numerique = {
+            compte: input.memberId,
+            agent,
+            operateur: 'wave',
+            reference: input.reference ?? '',
+            nature: 'epargne',
+            montantFcfa: input.amount,
+            dateValeur,
+          };
+          return this.api.post<FaitEnregistre>(REGISTRE.digital, body).pipe(map((r) => r.fait));
+        }
+        const body: Especes = {
+          compte: input.memberId,
+          agent,
+          nature: 'epargne',
+          montantFcfa: input.amount,
+          cle: depositCashKey(idempotencyKey),
+          dateValeur,
+        };
+        return this.api.post<FaitIdempotent>(REGISTRE.cash, body).pipe(map((r) => r.fait));
+      }),
+      switchMap((paymentId) =>
+        this.balance(input.memberId).pipe(
+          map((balance): DepositResult => {
+            const cash = input.channel === 'CASH';
+            return {
+              balance,
+              payment: {
+                id: paymentId,
+                memberId: input.memberId,
+                typeId: paymentTypeIdOf('epargne'),
+                amount: input.amount,
+                channel: input.channel,
+                status: cash ? 'PENDING_CASH' : 'CONFIRMED',
+                externalRef: input.reference,
+                agentId: agent,
+                createdAt: new Date().toISOString(),
+              },
+            };
+          }),
+        ),
+      ),
+    );
+  }
+
+  private balance(account: Hash): Observable<CollectTarget['balance']> {
+    return this.api
+      .get<Solde>(REGISTRE.accountBalance(account))
+      .pipe(map((s) => ({ booked: s.comptabilise, pending: s.enAttente, total: s.annonce })));
+  }
+
   /** The logged-in agent's merchants, rebuilt from the facts (A35). */
   private ownMembers(): Observable<MemberDetail[]> {
-    const agent = this.actor.current();
+    return this.membersFromFacts(this.actor.current());
+  }
+
+  /** Merchants of one agent, or of everyone (`null`), rebuilt from the facts. */
+  private membersFromFacts(agent: Hash | null): Observable<MemberDetail[]> {
     const facts: Observable<RegistreMemberFacts> = forkJoin({
       accounts: this.facts.detailedOfType('CompteEpargne'),
       identities: this.facts.detailedOfType('Identite'),

@@ -46,13 +46,14 @@ const CHANNEL_OF_OPERATOR: Readonly<Record<string, PaymentChannel>> = {
 };
 
 /**
- * Pure: the merchants enrolled by `agentId`, newest first, rebuilt from registry facts.
+ * Pure: the merchants enrolled by `agentId` (every merchant when `null`), newest first,
+ * rebuilt from registry facts.
  * Status: no card → card to associate; card associated → waiting for the cash closure visa;
  * card activated by the registry → active.
  */
 export function buildAgentMembers(
   facts: RegistreMemberFacts,
-  agentId: Hash,
+  agentId: Hash | null,
   labels: RegistreLabels,
 ): MemberDetail[] {
   const superseded = new Set(facts.accounts.flatMap((a) => priorsOf(a)));
@@ -70,7 +71,9 @@ export function buildAgentMembers(
   );
 
   return facts.accounts
-    .filter((a) => !superseded.has(a.fait) && predecessorOf(a, 'agent') === agentId)
+    .filter(
+      (a) => !superseded.has(a.fait) && (agentId === null || predecessorOf(a, 'agent') === agentId),
+    )
     .map((account): MemberDetail => {
       const person = predecessorOf(account, 'personne') ?? '';
       const who = identity.get(person);
@@ -93,7 +96,7 @@ export function buildAgentMembers(
         market: labels.markets.get(predecessorOf(account, 'marche') ?? '') ?? '',
         trade: labels.sectors.get((work && predecessorOf(work, 'secteur')) ?? '') ?? '',
         stall: (work && textOf(work, 'numeroEtale')) || undefined,
-        agentId,
+        agentId: predecessorOf(account, 'agent') ?? '',
         status,
         idNumber: textOf(idDocument.get(person) ?? account, 'numeroPiece') || undefined,
         cardId: cardHash,

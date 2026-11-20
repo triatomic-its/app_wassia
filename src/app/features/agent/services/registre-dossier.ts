@@ -18,6 +18,11 @@ export function membershipCashKey(idempotencyKey: string): string {
   return `adhesion-${personToken(idempotencyKey)}`;
 }
 
+/** Idempotency key of a savings deposit in cash (one per deposit, kept across retries). */
+export function depositCashKey(idempotencyKey: string): string {
+  return `versement-${personToken(idempotencyKey)}`;
+}
+
 /**
  * Pure: the registration form → the registry's `DossierSaisi`. Market, agency, sector and
  * consents are sent as registry hashes (the registry refuses codes).

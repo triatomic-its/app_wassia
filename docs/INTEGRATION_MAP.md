@@ -67,23 +67,23 @@ Légende : ✅ branché · 🔜 à brancher (étape indiquée) · 🟡 reste sur
 
 ### Collecte, caisse, compta (étapes 5 et 6)
 
-| Front                                   | Registre                                                             |
-| --------------------------------------- | -------------------------------------------------------------------- |
-| Versement terrain                       | `POST /especes` (`epargne`, `cle` = clé de la file hors ligne)       |
-| Paiement Mobile Money                   | `POST /numerique` (comptabilisé tout de suite)                       |
-| Synchronisation hors ligne              | `POST /synchronisations` (lot de `NouveauFait`)                      |
-| Solde                                   | `GET /comptes/{c}/solde` (`comptabilise`, `enAttente`, `annonce`)    |
-| Position et plafond de caisse           | `GET /caisse/position?agence=&date=`                                 |
-| Ouvrir la journée                       | `POST /journees`                                                     |
-| Clôture niveau 1 (caissière, par agent) | `POST /journees/{j}/clotures`                                        |
-| Niveau 2 (comptable)                    | `POST /clotures/{c}/validation`                                      |
-| Niveau 3 (DG)                           | `POST /validations/{v}/visa` — les espèces passent au journal        |
-| Activation du compte                    | `POST /comptes/{c}/activation` après le visa des 1 000 F             |
-| Frais d'ouverture restants              | `POST /comptes/{c}/frais-ouverture` (4 000 F prélevés sur l'épargne) |
-| Journal                                 | `GET /journal?compte=`                                               |
-| Contre-écriture                         | `POST /ecritures/{e}/contre-passages`                                |
-| Comptabiliser un encaissement           | `POST /encaissements/{e}/comptabiliser`                              |
-| Restitution d'épargne                   | `POST /comptes/{c}/restitutions`                                     |
+| Front                                        | Registre                                                                                                                     |
+| -------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------- |
+| Versement terrain (« Scanner et encaisser ») | `POST /especes` (`epargne`, `cle` = `versement-<clé>`) ✅ — carte → compte : `POST /faits/apercu` + faits `AssociationCarte` |
+| Paiement Mobile Money                        | `POST /numerique` (Wave, référence obligatoire, comptabilisé tout de suite) ✅                                               |
+| Synchronisation hors ligne                   | `POST /synchronisations` (lot de `NouveauFait`)                                                                              |
+| Solde                                        | `GET /comptes/{c}/solde` ✅ (`comptabilise` = compté, `enAttente` = espèces avant visa, `annonce` = total affiché)           |
+| Position et plafond de caisse                | `GET /caisse/position?agence=&date=`                                                                                         |
+| Ouvrir la journée                            | `POST /journees`                                                                                                             |
+| Clôture niveau 1 (caissière, par agent)      | `POST /journees/{j}/clotures`                                                                                                |
+| Niveau 2 (comptable)                         | `POST /clotures/{c}/validation`                                                                                              |
+| Niveau 3 (DG)                                | `POST /validations/{v}/visa` — les espèces passent au journal                                                                |
+| Activation du compte                         | `POST /comptes/{c}/activation` après le visa des 1 000 F                                                                     |
+| Frais d'ouverture restants                   | `POST /comptes/{c}/frais-ouverture` (4 000 F prélevés sur l'épargne)                                                         |
+| Journal                                      | `GET /journal?compte=`                                                                                                       |
+| Contre-écriture                              | `POST /ecritures/{e}/contre-passages`                                                                                        |
+| Comptabiliser un encaissement                | `POST /encaissements/{e}/comptabiliser`                                                                                      |
+| Restitution d'épargne                        | `POST /comptes/{c}/restitutions`                                                                                             |
 
 ### Dossiers et crédit (étape 7)
 
@@ -115,6 +115,8 @@ Tableaux de bord et KPI, supervision des agents (temps réel), suivi des enrôle
 ## Demandes à l'équipe back
 
 **Bloquant (20/11/2026)** : sur le serveur local, ces vues répondent `{"message":"erreur du registre"}` : `GET /comptes`, `/cartes`, `/identites`, `/decisions`, `/conflits`, `/habilitations`, `/baremes`. `GET /regles/{champ}` répond `registre indisponible`. `/faits`, `/catalogue`, `/caisse/date`, `/journal`, `/sante` fonctionnent.
+
+**Constaté le 20/11/2026 (versements)** : `POST /especes` accepte un versement **sur un compte non validé** (dossier « brouillon »), **par n’importe quel agent**, avec **n’importe quelle date de valeur** (même passée) et **sous `epargneMinimumFcfa`** (500 F accepté). Le front suit le back ; à confirmer que c’est voulu.
 
 **Constaté le 20/11/2026** : le registre accepte d’associer une **deuxième carte au même compte** (`POST /cartes/associations` répond 200). Le front ne le fait jamais, mais le serveur devrait le refuser.
 

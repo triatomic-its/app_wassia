@@ -1,0 +1,263 @@
+@if (store.receipt(); as r) {
+  <!-- "Versement enregistré" -->
+  <section
+    class="relative overflow-hidden rounded-card bg-sapin px-5 pt-7 pb-6 text-center text-white"
+    role="status"
+  >
+    <span
+      class="skew-band -top-8 -right-20 h-[150%] w-36 bg-emerald opacity-50"
+      aria-hidden="true"
+    ></span>
+    <span
+      class="relative mx-auto mb-3 flex size-16 items-center justify-center rounded-full bg-white text-sapin"
+      aria-hidden="true"
+    >
+      <ng-icon name="lucideCheck" size="32" />
+    </span>
+    <h2 class="relative font-display text-xl font-bold text-white">Versement enregistré</h2>
+    <p
+      class="relative font-display text-[2.5rem] leading-tight font-extrabold tracking-tight text-white"
+    >
+      {{ r.result.payment.amount | fcfa }}
+    </p>
+  </section>
+
+  <section aria-label="Reçu" class="rounded-card bg-surface px-4 py-1 shadow-card">
+    <dl>
+      <div class="flex justify-between gap-3 border-b border-dashed border-border py-3">
+        <dt class="text-ink-muted">Marchand</dt>
+        <dd class="text-right font-bold">{{ r.target.member.fullName }}</dd>
+      </div>
+      <div class="flex justify-between gap-3 border-b border-dashed border-border py-3">
+        <dt class="text-ink-muted">Carte</dt>
+        <dd class="font-bold">{{ r.target.card.printedNumber || '—' }}</dd>
+      </div>
+      <div class="flex justify-between gap-3 border-b border-dashed border-border py-3">
+        <dt class="text-ink-muted">Mode</dt>
+        <dd class="font-bold">{{ r.result.payment.channel === 'WAVE' ? 'Wave' : 'Espèces' }}</dd>
+      </div>
+      <div class="flex justify-between gap-3 border-b border-dashed border-border py-3">
+        <dt class="text-ink-muted">Heure</dt>
+        <dd class="font-bold">{{ r.result.payment.createdAt | abidjanDate: 'time' }}</dd>
+      </div>
+      <div class="flex items-baseline justify-between gap-3 py-3.5">
+        <dt class="font-bold">Épargne du marchand</dt>
+        <dd class="font-display text-xl font-extrabold text-sapin">
+          {{ r.result.balance.total | fcfa }}
+        </dd>
+      </div>
+    </dl>
+  </section>
+
+  @if (r.result.balance.pending > 0) {
+    <app-alert tone="info" [announce]="false">
+      Dont {{ r.result.balance.pending | fcfa }} en espèces, comptés après la validation de la
+      caisse. Remettez-les à la caissière ce soir.
+    </app-alert>
+  }
+  @if (store.afterCutoff()) {
+    <app-alert tone="warning" [announce]="false">
+      Il est plus de {{ store.cutoffLabel() }} : ce versement est compté demain.
+    </app-alert>
+  }
+
+  <button appButton variant="success" type="button" [block]="true" (click)="store.next()">
+    Scanner une autre carte
+  </button>
+  <a routerLink="/agent/accueil" appButton variant="outline" [block]="true">Retour à l'accueil</a>
+} @else if (store.target(); as t) {
+  <!-- Card scanned: the merchant, the amount, the mode -->
+  <div class="flex items-center gap-3 rounded-card bg-surface p-3.5 shadow-card">
+    <span
+      class="flex size-12 shrink-0 items-center justify-center rounded-full bg-sapin-soft font-display font-bold text-sapin-hover"
+      aria-hidden="true"
+    >
+      {{ initials(t.member.fullName) }}
+    </span>
+    <div class="min-w-0 flex-1">
+      <p class="font-display font-bold break-words">{{ t.member.fullName }}</p>
+      <p class="text-sm text-ink-muted">
+        {{ t.card.printedNumber || 'Carte' }} · Épargne {{ t.balance.total | fcfa }}
+      </p>
+      <app-status-chip
+        class="mt-1"
+        [label]="statusDisplay[t.member.status].label"
+        [tone]="statusDisplay[t.member.status].tone"
+      />
+    </div>
+  </div>
+
+  <fieldset class="flex flex-col gap-2">
+    <legend class="mb-2 px-1 font-display text-sm font-semibold text-ink-soft">
+      Montant du versement
+    </legend>
+    <div class="grid grid-cols-4 gap-2">
+      @for (a of store.quickAmounts; track a) {
+        <label
+          class="press flex h-13 cursor-pointer items-center justify-center rounded-control px-1 text-center font-display text-[0.9375rem] font-bold has-[:focus-visible]:outline-3 has-[:focus-visible]:outline-offset-2 has-[:focus-visible]:outline-accent"
+          [class]="
+            store.amountChoice() === '' + a
+              ? 'border-2 border-sapin bg-sapin-soft text-sapin-hover'
+              : 'border-[1.5px] border-border bg-surface text-ink'
+          "
+        >
+          <input
+            type="radio"
+            name="co-amount"
+            class="sr-only"
+            [value]="'' + a"
+            [attr.value]="'' + a"
+            [formControl]="store.form.controls.amount"
+          />
+          {{ a | fcfa }}
+        </label>
+      }
+      <label
+        class="press flex h-13 cursor-pointer items-center justify-center rounded-control font-display text-[0.9375rem] font-bold has-[:focus-visible]:outline-3 has-[:focus-visible]:outline-offset-2 has-[:focus-visible]:outline-accent"
+        [class]="
+          store.amountChoice() === 'other'
+            ? 'border-2 border-sapin bg-sapin-soft text-sapin-hover'
+            : 'border-[1.5px] border-border bg-surface text-ink'
+        "
+      >
+        <input
+          type="radio"
+          name="co-amount"
+          class="sr-only"
+          value="other"
+          [formControl]="store.form.controls.amount"
+        />
+        Autre
+      </label>
+    </div>
+  </fieldset>
+
+  @if (store.amountChoice() === 'other') {
+    <app-field label="Montant" for="co-other" [required]="true" [error]="store.errors().amount">
+      <input
+        id="co-other"
+        appInput
+        inputmode="numeric"
+        autocomplete="off"
+        placeholder="5 000"
+        [formControl]="store.form.controls.otherAmount"
+        [attr.aria-invalid]="!!store.errors().amount"
+        aria-describedby="co-other-msg"
+      />
+    </app-field>
+  }
+
+  <fieldset class="flex flex-col gap-2">
+    <legend class="mb-2 px-1 font-display text-sm font-semibold text-ink-soft">
+      Mode de paiement
+    </legend>
+    <div class="grid grid-cols-2 gap-1 rounded-control bg-border-soft p-1">
+      @for (c of channels; track c.value) {
+        <label
+          class="flex h-11 cursor-pointer items-center justify-center rounded-[11px] font-display text-[0.9375rem] has-[:focus-visible]:outline-3 has-[:focus-visible]:outline-accent"
+          [class]="
+            store.channel() === c.value
+              ? 'bg-surface font-bold text-ink shadow-card'
+              : 'font-semibold text-ink-muted'
+          "
+        >
+          <input
+            type="radio"
+            name="co-channel"
+            class="sr-only"
+            [value]="c.value"
+            [attr.value]="c.value"
+            [formControl]="store.form.controls.channel"
+          />
+          {{ c.label }}
+        </label>
+      }
+    </div>
+    <p class="px-1 text-sm text-ink-muted">
+      @if (store.channel() === 'WAVE') {
+        Le marchand paie sur son téléphone, puis vous montre la confirmation Wave.
+      } @else {
+        Cet argent s'ajoute à ce que vous remettez à la caissière ce soir.
+      }
+    </p>
+  </fieldset>
+
+  @if (store.channel() === 'WAVE') {
+    <app-field
+      label="Référence Wave"
+      for="co-ref"
+      [required]="true"
+      hint="Elle est écrite sur la confirmation Wave du marchand."
+      [error]="store.errors().reference"
+    >
+      <input
+        id="co-ref"
+        appInput
+        autocapitalize="characters"
+        autocomplete="off"
+        [formControl]="store.form.controls.reference"
+        [attr.aria-invalid]="!!store.errors().reference"
+        aria-describedby="co-ref-msg"
+      />
+    </app-field>
+  }
+
+  @if (store.afterCutoff()) {
+    <app-alert tone="warning" [announce]="false">
+      Il est plus de {{ store.cutoffLabel() }} : ce versement sera compté demain.
+    </app-alert>
+  }
+
+  <div aria-live="assertive">
+    @if (store.error(); as message) {
+      <app-alert tone="danger">{{ message }}</app-alert>
+    }
+  </div>
+
+  <div
+    class="sticky bottom-[5.5rem] z-10 -mx-4 flex flex-col gap-2 border-t border-border-soft bg-surface px-4 py-3 md:bottom-0 md:mx-0 md:rounded-card md:border-0 md:shadow-card"
+  >
+    <button
+      appButton
+      variant="success"
+      type="button"
+      [block]="true"
+      [disabled]="store.saving()"
+      (click)="store.save()"
+    >
+      @if (store.saving()) {
+        Enregistrement…
+      } @else if (store.amount() > 0) {
+        Enregistrer {{ store.amount() | fcfa }}
+      } @else {
+        Enregistrer le versement
+      }
+    </button>
+    <button appButton variant="outline" type="button" [block]="true" (click)="store.next()">
+      Scanner une autre carte
+    </button>
+  </div>
+} @else {
+  <!-- Waiting for a card -->
+  <div class="px-1">
+    <h2 class="text-[1.625rem] leading-tight font-extrabold tracking-tight text-night">
+      Scanner la carte du marchand
+    </h2>
+    <p class="mt-1 text-sm text-ink-muted">Placez le code QR de la carte dans le cadre.</p>
+  </div>
+
+  <app-card-scan
+    scanLabel="Scanner la carte"
+    [disabled]="store.looking()"
+    (scanned)="store.scanned($event)"
+  />
+
+  <div aria-live="polite" class="flex flex-col gap-3 empty:hidden">
+    @if (store.looking()) {
+      <app-skeleton [lines]="2" />
+    }
+    @if (store.error(); as message) {
+      <app-alert tone="danger">{{ message }}</app-alert>
+    }
+  </div>
+}

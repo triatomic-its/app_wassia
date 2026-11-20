@@ -1,5 +1,6 @@
 import { Injectable, inject } from '@angular/core';
-import { Observable, map, of } from 'rxjs';
+import { HttpErrorResponse } from '@angular/common/http';
+import { Observable, map, of, throwError } from 'rxjs';
 import { ApiClient } from '@core/api/api-client.service';
 import { API } from '@core/api/endpoints';
 import { toPageParams } from '@core/api/pagination';
@@ -11,6 +12,8 @@ import {
   AgentToday,
   CardAssignResult,
   CardLookup,
+  CollectTarget,
+  DepositResult,
   EnrollmentOptions,
   EnrollmentResult,
   Fcfa,
@@ -88,4 +91,26 @@ export class MockAgentApi implements AgentApi {
       toPageParams({ size: 50, sort: 'createdAt,desc' }, { status: 'CARD_TO_ASSIGN' }),
     );
   }
+
+  /** Savings deposits are built on the registry only (2026-11-20, A36). */
+  findByCard(): Observable<CollectTarget> {
+    return registryOnly();
+  }
+
+  deposit(): Observable<DepositResult> {
+    return registryOnly();
+  }
+}
+
+function registryOnly(): Observable<never> {
+  return throwError(
+    () =>
+      new HttpErrorResponse({
+        status: 501,
+        error: {
+          code: 'REGISTRY_ONLY',
+          message: 'Le versement d’épargne n’est disponible qu’avec le registre WASSIA.',
+        },
+      }),
+  );
 }

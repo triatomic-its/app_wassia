@@ -90,3 +90,10 @@
 - **Vérifié** : lint, 158 tests, build (initial 408 kB) ; parcours complet dans le navigateur contre le serveur local : inscription en 4 étapes, enregistrement, carte WAS-000003 reconnue puis associée, compte `WS-2026-000002`, marchand listé « En attente de validation », aucune requête en échec.
 - **Reste** : collecte (étape 5), caisse et visa qui activera les comptes (étape 6). Côté back : vues en erreur, deuxième carte acceptée sur un même compte, endpoint d'envoi de photos.
 - **Hypothèses** : A34, A35 ajoutées ; A24 remplacée (référence Wave obligatoire).
+
+## Intégration du registre — étape 5a : « Scanner et encaisser » (2026-11-20)
+
+- **Fait** : écran `/agent/scanner` (maquette) : scan de la carte → marchand, carte, épargne, statut ; montants rapides 500 / 1 000 / 2 000 F ou « Autre » ; espèces ou Wave (référence obligatoire) ; bandeau après 16 h 00 ; reçu « Versement enregistré » avec l'épargne totale et la part en espèces en attente du visa. `AgentApi.findByCard` / `deposit` (registre : `/faits/apercu` + `AssociationCarte`, `/especes` ou `/numerique`, `/comptes/{c}/solde`), rejouables (même clé tant que le versement n'a pas abouti, nouvelle clé à la carte suivante). Panneau Démo : le scan d'une carte du registre marche aussi sur cet écran.
+- **Vérifié** : lint, 168 tests, build ; navigateur contre le serveur : carte vierge refusée (« associée à aucun marchand »), carte WAS-000003 → 1 000 F en espèces enregistrés en 0,4 s, reçu correct, aucune requête en échec.
+- **Reste** : 5b file hors connexion + `POST /synchronisations` ; 5c tournée de collecte.
+- **Hypothèses** : A36 ajoutée.

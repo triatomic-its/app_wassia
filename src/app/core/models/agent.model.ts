@@ -55,3 +55,35 @@ export interface EnrollmentOptions {
   /** Minimum savings deposit the merchant can commit to. */
   minimumSavings: Fcfa;
 }
+
+/** A merchant's savings as the registry counts them. */
+export interface SavingsBalance {
+  /** Booked in the ledger (Wave at once, cash after the closure visa). */
+  booked: Fcfa;
+  /** Cash collected, waiting for the cash closure visa. */
+  pending: Fcfa;
+  /** booked + pending: what the merchant has handed over. */
+  total: Fcfa;
+}
+
+/** The merchant found by scanning their card, ready to receive a deposit. */
+export interface CollectTarget {
+  member: Member;
+  card: Pick<Card, 'id' | 'printedNumber' | 'status'>;
+  balance: SavingsBalance;
+}
+
+export type DepositChannel = 'CASH' | 'WAVE';
+
+export interface DepositInput {
+  memberId: string;
+  amount: Fcfa;
+  channel: DepositChannel;
+  /** Wave transaction reference (required for Wave: it is the payment's key). */
+  reference?: string;
+}
+
+export interface DepositResult {
+  payment: Payment;
+  balance: SavingsBalance;
+}

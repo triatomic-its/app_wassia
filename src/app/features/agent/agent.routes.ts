@@ -31,6 +31,11 @@ export default [
       import('./pages/assign-card/assign-card.component').then((m) => m.AssignCardPage),
   },
   comingSoonRoute('collecte', 'Tournée de collecte', 'Phase 4'),
-  comingSoonRoute('scanner', 'Scanner et encaisser', 'Phase 4'),
+  {
+    path: 'scanner',
+    title: 'Scanner et encaisser — WASSIA',
+    canMatch: [permissionGuard('collect.field')],
+    loadComponent: () => import('./pages/collect/collect.component').then((m) => m.CollectPage),
+  },
   comingSoonRoute('credit', 'Demande de crédit', 'Phase 7'),
 ] satisfies Routes;

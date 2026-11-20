@@ -6,6 +6,9 @@ import {
   Card,
   CardAssignResult,
   CardLookup,
+  CollectTarget,
+  DepositInput,
+  DepositResult,
   EnrollmentOptions,
   EnrollmentResult,
   Fcfa,
@@ -65,4 +68,11 @@ export abstract class AgentApi {
   abstract assignCard(memberId: string, qrToken: string): Observable<CardAssignResult>;
   /** Own merchants registered (paid) who still have no card. */
   abstract cardsToAssign(): Observable<Page<Member>>;
+  /** The merchant whose card was scanned, with their savings. */
+  abstract findByCard(qrToken: string): Observable<CollectTarget>;
+  /**
+   * Records a savings deposit. `idempotencyKey` is the same for every retry of one deposit:
+   * the server never records it twice.
+   */
+  abstract deposit(input: DepositInput, idempotencyKey: string): Observable<DepositResult>;
 }
