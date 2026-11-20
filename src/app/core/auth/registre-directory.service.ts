@@ -1,3 +1,4 @@
+import { HttpContext } from '@angular/common/http';
 import { Injectable, inject } from '@angular/core';
 import { firstValueFrom } from 'rxjs';
 import { handledErrors } from '../api/http-context';
@@ -28,6 +29,8 @@ const MAX_FACTS = 1000;
 @Injectable({ providedIn: 'root' })
 export class RegistreDirectory {
   private readonly api = inject(RegistreClient);
+  /** Rights change rarely: read once per session. */
+  private habilitationsCache: Promise<Habilitation[]> | null = null;
 
   async users(): Promise<RegistreUser[]> {
     const [users, roles, attributions, identities] = await Promise.all([
@@ -76,29 +79,70 @@ export class RegistreDirectory {
   }
 
   /**
-   * Actions granted to a role. `GET /habilitations` is the source; while it answers an error
-   * (reported to the back-end team), the copy taken on 2026-11-20 is used.
+   * Actions granted to a role, read live from the registry. `GET /habilitations` answers an error
+   * for now (reported to the back-end team), so they are rebuilt from the `Habilitation` facts,
+   * minus those withdrawn by a `Levee`. Only if the registry cannot be read at all is the copy
+   * taken on 2026-11-20 used. Switch back to `REGISTRE.habilitations` once the view is fixed.
    */
   async actionsOf(role: Role): Promise<readonly string[]> {
     try {
-      const all = await firstValueFrom(
-        this.api.get<Habilitation[]>(REGISTRE.habilitations, undefined, handledErrors()),
-      );
+      const all = await this.habilitations();
       return all.filter((h) => h.roleCode === role).map((h) => h.action);
     } catch {
       return ROLE_ACTIONS_SNAPSHOT[role];
     }
   }
 
-  private factsOfType(type: string): Promise<FaitResume[]> {
-    return firstValueFrom(this.api.get<FaitResume[]>(REGISTRE.facts, { type, limite: MAX_FACTS }));
+  private habilitations(): Promise<Habilitation[]> {
+    this.habilitationsCache ??= this.loadHabilitations().catch((error: unknown) => {
+      this.habilitationsCache = null;
+      throw error;
+    });
+    return this.habilitationsCache;
   }
 
-  private details(facts: readonly FaitResume[]): Promise<Fait[]> {
-    return Promise.all(facts.map((f) => firstValueFrom(this.api.get<Fait>(REGISTRE.fact(f.fait)))));
+  private async loadHabilitations(): Promise<Habilitation[]> {
+    // The caller falls back to the snapshot: no error toast.
+    const context = handledErrors();
+    const [grants, roles, releases] = await Promise.all([
+      this.factsOfType('Habilitation', context),
+      this.factsOfType('RoleMetier', context),
+      this.factsOfType('Levee', context),
+    ]);
+    const roleOfHash = new Map(roles.map((r) => [r.fait, r.champs['code']]));
+    const [grantFacts, releaseFacts] = await Promise.all([
+      this.details(grants, context),
+      this.details(releases, context),
+    ]);
+    const withdrawn = new Set(releaseFacts.flatMap((l) => predecessors(l, 'prior')));
+
+    return grantFacts.flatMap((g): Habilitation[] => {
+      const roleCode = roleOfHash.get(predecessor(g, 'role') ?? '');
+      const action = g.champs['action'];
+      if (withdrawn.has(g.fait) || !isRole(roleCode) || typeof action !== 'string') return [];
+      return [{ roleCode, action }];
+    });
+  }
+
+  private factsOfType(type: string, context?: HttpContext): Promise<FaitResume[]> {
+    return firstValueFrom(
+      this.api.get<FaitResume[]>(REGISTRE.facts, { type, limite: MAX_FACTS }, context),
+    );
+  }
+
+  private details(facts: readonly FaitResume[], context?: HttpContext): Promise<Fait[]> {
+    return Promise.all(
+      facts.map((f) =>
+        firstValueFrom(this.api.get<Fait>(REGISTRE.fact(f.fait), undefined, context)),
+      ),
+    );
   }
 }
 
 function predecessor(fact: Fait, role: string): Hash | undefined {
   return fact.predecesseurs.find((p) => p.role === role)?.predecesseur;
+}
+
+function predecessors(fact: Fait, role: string): Hash[] {
+  return fact.predecesseurs.filter((p) => p.role === role).map((p) => p.predecesseur);
 }

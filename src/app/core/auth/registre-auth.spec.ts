@@ -36,27 +36,31 @@ const FACTS: Fait[] = [
   fact(h('a'), 'AttributionRole', {}, { utilisateur: h('u'), role: h('s') }, 1),
   fact(h('b'), 'AttributionRole', {}, { utilisateur: h('u'), role: h('r'), prior: h('a') }, 2),
   fact(h('i'), 'Identite', { nom: 'Koné', prenoms: 'Ibrahim' }, { personne: h('p') }),
+  // Rights: the agent may associate cards; a second right was withdrawn by a Levee.
+  fact(h('c'), 'Habilitation', { action: 'associer_carte' }, { role: h('r') }),
+  fact(h('d'), 'Habilitation', { action: 'saisir_dossier' }, { role: h('r') }),
+  fact(h('e'), 'Habilitation', { action: 'cloturer_caisse' }, { role: h('s') }),
+  fact(h('l'), 'Levee', { motif: 'retrait' }, { prior: h('d') }),
 ];
 
 /** Fake HttpClient answering the registry reads used by the directory. */
 class FakeHttp {
-  habilitations: unknown = [{ roleCode: 'agent', action: 'associer_carte' }];
+  /** Simulates a registry that cannot be read for this fact type. */
+  failingType: string | null = null;
+  readonly paths: string[] = [];
 
   get(url: string, options?: { params?: Record<string, string | number> }): Observable<unknown> {
     const path = url.slice(environment.registreBaseUrl.length);
+    this.paths.push(path);
     if (path === '/faits') {
       const type = options?.params?.['type'];
+      if (type === this.failingType) {
+        return throwError(() => new HttpErrorResponse({ status: 0, statusText: 'Unknown Error' }));
+      }
       const list: FaitResume[] = FACTS.filter((f) => f.type === type);
       return of(list);
     }
     if (path.startsWith('/faits/')) return of(FACTS.find((f) => f.fait === path.slice(7)));
-    if (path === '/habilitations') {
-      return this.habilitations instanceof Error
-        ? throwError(
-            () => new HttpErrorResponse({ status: 500, error: { message: 'erreur du registre' } }),
-          )
-        : of(this.habilitations);
-    }
     return throwError(() => new Error(`unexpected ${url}`));
   }
 }
@@ -82,16 +86,22 @@ describe('registry login', () => {
     ]);
   });
 
-  it('logs in with the user hash as id and permissions derived from live habilitations', async () => {
+  it('logs in with the user hash as id and permissions from the live habilitation facts', async () => {
     await TestBed.inject(AuthService).login({ profileId: h('u') });
     const session = TestBed.inject(SessionStore);
     expect(session.user()?.id).toBe(h('u'));
     expect(session.role()).toBe('agent');
+    // saisir_dossier was withdrawn (Levee), cloturer_caisse belongs to another role.
     expect([...session.permissions()]).toEqual(['card.assign']);
   });
 
-  it('falls back to the habilitations snapshot while the view answers an error', async () => {
-    http.habilitations = new Error();
+  it('never calls the broken GET /habilitations view', async () => {
+    await TestBed.inject(AuthService).login({ profileId: h('u') });
+    expect(http.paths).not.toContain('/habilitations');
+  });
+
+  it('falls back to the 2026-11-20 snapshot when the registry cannot be read', async () => {
+    http.failingType = 'Habilitation';
     await TestBed.inject(AuthService).login({ role: 'agent' });
     const session = TestBed.inject(SessionStore);
     expect(session.can('member.enroll')).toBe(true);
