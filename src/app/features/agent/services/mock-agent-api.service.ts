@@ -22,6 +22,7 @@ import {
   PaymentType,
   PhoneCheck,
 } from '@core/models';
+import { RoundDay } from '../models/round.model';
 import type { AgentApi, MemberDetail } from './agent-api.service';
 
 /** `AgentApi` on the mock back end (`/api/v1`, see docs/API_CONTRACT.md). */
@@ -98,6 +99,10 @@ export class MockAgentApi implements AgentApi {
   }
 
   deposit(): Observable<DepositResult> {
+    return registryOnly();
+  }
+
+  round(): Observable<RoundDay> {
     return registryOnly();
   }
 }

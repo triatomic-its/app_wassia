@@ -30,7 +30,12 @@ export default [
     loadComponent: () =>
       import('./pages/assign-card/assign-card.component').then((m) => m.AssignCardPage),
   },
-  comingSoonRoute('collecte', 'Tournée de collecte', 'Phase 4'),
+  {
+    path: 'collecte',
+    title: 'Tournée du jour — WASSIA',
+    canMatch: [permissionGuard('collect.field')],
+    loadComponent: () => import('./pages/round/round.component').then((m) => m.RoundPage),
+  },
   {
     path: 'scanner',
     title: 'Scanner et encaisser — WASSIA',

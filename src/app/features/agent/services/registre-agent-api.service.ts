@@ -53,6 +53,8 @@ import { ProductRulesService } from '@core/services/product-rules.service';
 import { ReferenceService } from '@core/services/reference.service';
 import type { AgentApi, MemberDetail } from './agent-api.service';
 import { CachedCard } from '../models/offline.model';
+import { RoundDay } from '../models/round.model';
+import { buildRound } from './round';
 import { CollectOffline } from './collect-offline.service';
 import { buildCollectableCards } from './collect-cards';
 import { MockAgentApi } from './mock-agent-api.service';
@@ -507,6 +509,16 @@ export class RegistreAgentApi implements AgentApi {
     return this.api
       .get<Solde>(REGISTRE.accountBalance(account))
       .pipe(map((s) => ({ booked: s.comptabilise, pending: s.enAttente, total: s.annonce })));
+  }
+
+  /** Today's round, deposits still on the phone included. */
+  round(): Observable<RoundDay> {
+    return forkJoin({ members: this.ownMembers(), date: this.rules.cashDate() }).pipe(
+      map(({ members, date }) => ({
+        businessDate: date,
+        entries: buildRound(members, date, this.offline.queue()),
+      })),
+    );
   }
 
   /** The logged-in agent's merchants, rebuilt from the facts (A35). */

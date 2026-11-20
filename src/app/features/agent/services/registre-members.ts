@@ -143,6 +143,7 @@ function toPayment(fact: Fait, memberId: Hash, channel: PaymentChannel): Payment
     externalRef: textOf(fact, 'referenceOperateur') || undefined,
     agentId: predecessorOf(fact, 'agent'),
     createdAt: fact.recuLe,
+    businessDate: textOf(fact, 'dateValeur') || undefined,
   };
 }
 

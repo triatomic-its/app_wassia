@@ -104,3 +104,10 @@
 - **Vérifié** : lint, 173 tests, build ; navigateur avec coupure réelle : carte reconnue hors ligne, Wave refusé, 700 F gardés (solde serveur inchangé), retour du réseau → envoi automatique, bandeau vidé, solde serveur +700 F en attente.
 - **Reste** : 5c tournée de collecte. Côté back : 0 F accepté par la synchronisation, jetons de cartes lisibles par tous via `/faits`.
 - **Hypothèses** : A37 ajoutée.
+
+## Intégration du registre — étape 5c : tournée de collecte (2026-11-20)
+
+- **Fait** : écran `/agent/collecte` « Tournée du jour » (maquette) : date et « X versés sur Y », pastille En ligne / Hors ligne, recherche (nom, étal, numéro de carte, sans tenir compte des accents), filtres Tous / À passer / Versé avec compteurs, liste « À passer » d'abord, badge « Versé 1 000 F » (« · à envoyer » si encore sur le téléphone), bouton « Scanner une carte », bandeau des versements à envoyer ; la tournée se recharge quand la file du téléphone change. Fonctions pures `buildRound` / `filterRound` testées.
+- **Vérifié** : lint, 177 tests, build ; navigateur contre le serveur à 390 et 820 px : 2 marchands avec carte, totaux du jour exacts, filtres et recherche, aucun débordement, aucune requête en échec.
+- **Reste de l'étape 5** : la vue tablette « liste + détail » de la maquette (`App-Tablette-Tournee`) et le filtre « En retard » (avec le crédit). Étape suivante : caisse et clôture (visa qui active les comptes).
+- **Hypothèses** : A38 ajoutée.

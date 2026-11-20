@@ -1,0 +1,144 @@
+<app-pending-deposits />
+
+<div class="flex flex-col gap-3 rounded-card bg-surface p-4 shadow-card">
+  <div class="flex items-center justify-between gap-3">
+    <p class="text-sm text-ink-muted">
+      @if (store.day.hasValue()) {
+        {{ store.day.value().businessDate | abidjanDate: 'long' }} ·
+        {{ store.counts().paid }} versés sur {{ store.counts().all }}
+      } @else {
+        Tournée du jour
+      }
+    </p>
+    <span
+      class="inline-flex shrink-0 items-center gap-1.5 rounded-pill px-2.5 py-1 text-xs font-bold"
+      [class]="online() ? 'bg-sapin-soft text-sapin-hover' : 'bg-neutral-soft text-neutral'"
+    >
+      <span
+        class="size-2 rounded-full"
+        [class]="online() ? 'bg-emerald' : 'bg-ink-faint'"
+        aria-hidden="true"
+      ></span>
+      {{ online() ? 'En ligne' : 'Hors ligne' }}
+    </span>
+  </div>
+
+  <label class="flex h-12 items-center gap-2.5 rounded-control bg-bg px-3.5 text-ink-faint">
+    <ng-icon name="lucideSearch" size="18" aria-hidden="true" />
+    <span class="sr-only">Rechercher un marchand</span>
+    <input
+      type="search"
+      class="min-w-0 flex-1 bg-transparent text-base text-ink outline-none placeholder:text-ink-faint"
+      placeholder="Nom, étal ou numéro de carte"
+      autocomplete="off"
+      [value]="store.search()"
+      (input)="setSearch($event)"
+    />
+  </label>
+
+  <div class="flex gap-2 overflow-x-auto" role="group" aria-label="Filtrer la tournée">
+    @for (f of filters; track f.value) {
+      <button
+        type="button"
+        class="min-h-10 shrink-0 rounded-pill px-3.5 font-display text-[0.8125rem] font-semibold"
+        [class]="
+          store.filter() === f.value
+            ? 'bg-night text-white'
+            : 'border border-border bg-surface text-ink-soft'
+        "
+        [attr.aria-pressed]="store.filter() === f.value"
+        (click)="store.filter.set(f.value)"
+      >
+        {{ f.label }}
+        <span class="opacity-75">{{ store.counts()[f.value] }}</span>
+      </button>
+    }
+  </div>
+</div>
+
+<a routerLink="/agent/scanner" appButton variant="success" [block]="true">
+  <ng-icon name="lucideScanQrCode" size="22" aria-hidden="true" />Scanner une carte
+</a>
+
+@if (store.day.error()) {
+  <div class="rounded-card bg-surface shadow-card">
+    <app-error-state
+      [message]="online() ? 'Impossible de charger la tournée.' : offlineMessage"
+      (retry)="store.day.reload()"
+    />
+  </div>
+} @else if (store.day.hasValue()) {
+  @if (store.visible().length === 0) {
+    <div class="rounded-card bg-surface shadow-card">
+      @if (store.counts().all === 0) {
+        <app-empty-state
+          title="Aucun marchand avec carte"
+          text="Les marchands que vous inscrivez apparaîtront ici une fois leur carte associée."
+          icon="lucideSearch"
+        />
+      } @else {
+        <app-empty-state
+          title="Personne ici"
+          text="Changez le filtre ou la recherche."
+          icon="lucideSearch"
+        />
+      }
+    </div>
+  } @else {
+    <ul class="overflow-hidden rounded-card bg-surface shadow-card">
+      @for (e of store.visible(); track e.member.id) {
+        <li class="border-t border-bg first:border-t-0">
+          <a
+            routerLink="/agent/scanner"
+            class="flex min-h-[4.25rem] items-center gap-3 px-3.5 py-2.5 text-ink active:bg-bg"
+          >
+            <span
+              class="flex size-[2.625rem] shrink-0 items-center justify-center rounded-full font-display text-sm font-bold"
+              [class]="
+                e.state === 'paid'
+                  ? 'bg-sapin-soft text-sapin-hover'
+                  : 'bg-primary-soft text-primary'
+              "
+              aria-hidden="true"
+            >
+              {{ initials(e.member.fullName) }}
+            </span>
+            <span class="flex min-w-0 flex-1 flex-col">
+              <span class="line-clamp-2 font-display text-[0.9375rem] font-semibold break-words">
+                {{ e.member.fullName }}
+              </span>
+              <span class="truncate text-[0.8125rem] text-ink-muted">
+                {{ e.member.stall || e.printedNumber }}
+              </span>
+              <span
+                class="mt-1 self-start rounded-tile px-2.5 py-0.5 text-xs font-bold"
+                [class]="
+                  e.state === 'paid'
+                    ? 'bg-sapin-soft text-sapin-hover'
+                    : 'bg-neutral-soft text-neutral'
+                "
+              >
+                @if (e.state === 'paid') {
+                  Versé {{ e.paidToday + e.waitingSync | fcfa }}
+                  @if (e.waitingSync > 0) {
+                    · à envoyer
+                  }
+                } @else {
+                  À passer
+                }
+              </span>
+            </span>
+            <ng-icon
+              name="lucideChevronRight"
+              size="18"
+              class="shrink-0 text-ink-faint"
+              aria-hidden="true"
+            />
+          </a>
+        </li>
+      }
+    </ul>
+  }
+} @else {
+  <div class="rounded-card bg-surface p-4 shadow-card"><app-skeleton [lines]="5" /></div>
+}

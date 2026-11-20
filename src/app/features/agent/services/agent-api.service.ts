@@ -20,6 +20,7 @@ import {
   PhoneCheck,
 } from '@core/models';
 import { environment } from '@env/environment';
+import { RoundDay } from '../models/round.model';
 import { MockAgentApi } from './mock-agent-api.service';
 import { RegistreAgentApi } from './registre-agent-api.service';
 
@@ -75,4 +76,6 @@ export abstract class AgentApi {
    * the server never records it twice.
    */
   abstract deposit(input: DepositInput, idempotencyKey: string): Observable<DepositResult>;
+  /** The agent's round for today: who has paid, who is still to visit. */
+  abstract round(): Observable<RoundDay>;
 }
