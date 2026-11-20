@@ -63,12 +63,12 @@ const iso = (ms: number) => new Date(ms).toISOString();
 const dateOf = (ms: number) => new Date(ms).toISOString().slice(0, 10);
 
 const STAFF: { id: string; fullName: string; role: Role }[] = [
-  { id: 'u-dg', fullName: 'Yao Kouassi', role: 'DG' },
-  { id: 'u-ddg', fullName: 'Moussa Diabaté', role: 'DEPUTY_DG' },
-  { id: 'u-bm', fullName: 'Rokia Traoré', role: 'BRANCH_MANAGER' },
-  { id: 'u-mgr', fullName: 'Aminata Coulibaly', role: 'MANAGER' },
-  { id: 'u-acc', fullName: 'Serge Kouadio', role: 'ACCOUNTANT' },
-  { id: 'u-cash', fullName: 'Mariam Sylla', role: 'CASHIER' },
+  { id: 'u-dg', fullName: 'Yao Kouassi', role: 'dg' },
+  { id: 'u-asst', fullName: 'Moussa Diabaté', role: 'assistant' },
+  { id: 'u-bm', fullName: 'Rokia Traoré', role: 'chef_agence' },
+  { id: 'u-mgr', fullName: 'Aminata Coulibaly', role: 'secretaire' },
+  { id: 'u-acc', fullName: 'Serge Kouadio', role: 'comptable' },
+  { id: 'u-cash', fullName: 'Mariam Sylla', role: 'caissiere' },
 ];
 
 const AGENTS = [
@@ -132,7 +132,7 @@ export function seedMockData(now: Date, seed = DEFAULT_SEED): MockData {
     ...STAFF.map((s, i) => ({ ...s, phone: `07 00 00 10 0${i}`, active: true })),
     ...AGENTS.map((a, i) => ({
       ...a,
-      role: 'AGENT' as Role,
+      role: 'agent' as Role,
       phone: `07 00 00 20 0${i}`,
       active: true,
     })),
@@ -345,11 +345,11 @@ export function seedMockData(now: Date, seed = DEFAULT_SEED): MockData {
     const decided = ['APPROVED', 'REPAYING', 'LATE_1', 'LATE_2', 'REPAID'].includes(plan.status);
     const at = iso(nowMs - plan.ageDays * DAY + DAY);
     if (decided) {
-      if (plan.amount <= 500_000) approvals.push({ role: 'BRANCH_MANAGER', userId: 'u-bm', at });
-      else if (plan.amount <= 3_000_000) approvals.push({ role: 'DG', userId: 'u-dg', at });
+      if (plan.amount <= 500_000) approvals.push({ role: 'chef_agence', userId: 'u-bm', at });
+      else if (plan.amount <= 3_000_000) approvals.push({ role: 'dg', userId: 'u-dg', at });
       else {
-        approvals.push({ role: 'DG', userId: 'u-dg', at });
-        approvals.push({ role: 'ACCOUNTANT', userId: 'u-acc', at });
+        approvals.push({ role: 'dg', userId: 'u-dg', at });
+        approvals.push({ role: 'comptable', userId: 'u-acc', at });
       }
     }
     return {

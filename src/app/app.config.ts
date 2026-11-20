@@ -20,6 +20,8 @@ import { routes } from './app.routes';
 import { authInterceptor } from '@core/interceptors/auth.interceptor';
 import { errorInterceptor } from '@core/interceptors/error.interceptor';
 import { OidcAuthService } from '@core/auth/auth.oidc';
+import { RegistreAuthService } from '@core/auth/auth.registre';
+import { environment } from '@env/environment';
 import { AuthService } from '@core/auth/auth.service';
 // Fake back end in development; replaced by an empty module in production builds.
 import { MOCK_INTERCEPTORS, MOCK_PROVIDERS } from './mocks';
@@ -41,7 +43,11 @@ export const appConfig: ApplicationConfig = {
       withFetch(),
       withInterceptors([authInterceptor, errorInterceptor, ...MOCK_INTERCEPTORS]),
     ),
-    { provide: AuthService, useClass: OidcAuthService },
+    // Until Keycloak is wired, the real back end is used by picking a registry user (A26).
+    {
+      provide: AuthService,
+      useClass: environment.useRegistre ? RegistreAuthService : OidcAuthService,
+    },
     ...MOCK_PROVIDERS,
     // Restore the session (GET /me) before the first navigation.
     provideAppInitializer(() => inject(AuthService).restore()),

@@ -14,14 +14,17 @@
 
 ## Côté front
 
-| Élément                      | Où                                                                                                            |
-| ---------------------------- | ------------------------------------------------------------------------------------------------------------- |
-| URL du registre              | `environment.registreBaseUrl` (`/registre` en dev, relayé par `proxy.conf.json` vers `http://127.0.0.1:8080`) |
-| Activation                   | `environment.useRegistre` (`false` ⇒ tout reste sur le faux back)                                             |
-| Client HTTP                  | `core/api/registre-client.service.ts`                                                                         |
-| Chemins                      | `core/api/registre-endpoints.ts`                                                                              |
-| Types de la spec             | `core/models/registre.model.ts`                                                                               |
-| Conversion registre → écrans | `core/api/registre-mappers.ts`                                                                                |
+| Élément                      | Où                                                                                                               |
+| ---------------------------- | ---------------------------------------------------------------------------------------------------------------- |
+| URL du registre              | `environment.registreBaseUrl` (`/registre` en dev, relayé par `proxy.conf.json` vers `http://127.0.0.1:8080`)    |
+| Activation                   | `environment.useRegistre` (`false` ⇒ tout reste sur le faux back)                                                |
+| Connexion                    | `core/auth/auth.registre.ts` (choix d'un utilisateur du registre), acteur via `core/auth/actor.service.ts`       |
+| Faux back en mode hybride    | `mocks/registre-bridge.interceptor.ts` : passe le rôle du registre au faux back (`Bearer mock.<rôle>`)           |
+| Données de test              | `npm run seed:registre` : 12 utilisateurs (un par rôle + 6 agents) et 50 cartes vierges `WAS-000001…`, rejouable |
+| Client HTTP                  | `core/api/registre-client.service.ts`                                                                            |
+| Chemins                      | `core/api/registre-endpoints.ts`                                                                                 |
+| Types de la spec             | `core/models/registre.model.ts`                                                                                  |
+| Conversion registre → écrans | `core/api/registre-mappers.ts`                                                                                   |
 
 Le faux back n'intercepte que `environment.apiBaseUrl` (`/api/v1`) : les appels au registre passent toujours au vrai serveur. C'est le **mode hybride**.
 
@@ -31,12 +34,12 @@ Légende : ✅ branché · 🔜 à brancher (étape indiquée) · 🟡 reste sur
 
 ### Identité, rôles, permissions
 
-| Front (faux back)               | Registre                                                      | État             | Écart                                                                                                                       |
-| ------------------------------- | ------------------------------------------------------------- | ---------------- | --------------------------------------------------------------------------------------------------------------------------- |
-| `GET /me`                       | —                                                             | 🔜 étape 2       | Pas de `/me`. Le rôle vient de `AttributionRole`, les permissions de `GET /habilitations` (rôle → action)                   |
-| `GET /roles`                    | `GET /faits?type=RoleMetier`                                  | 🔜 étape 2       | Codes : `agent, secretaire, assistant, chef_agence, caissiere, comptable, dg` (pas de Directeur adjoint ni de Gestionnaire) |
-| `GET/POST/PATCH /users`         | `POST /faits` (`Utilisateur`), `POST /utilisateurs/{u}/roles` | 🔜 étapes 2 et 8 | Pas de liste d'utilisateurs (demandée)                                                                                      |
-| Matrice `permissions.config.ts` | `GET /habilitations`                                          | 🔜 étape 2       | Les permissions deviennent les actions du back                                                                              |
+| Front (faux back)               | Registre                                                      | État             | Écart                                                                                                                                                                       |
+| ------------------------------- | ------------------------------------------------------------- | ---------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `GET /me`                       | —                                                             | ✅               | Pas de `/me` : `RegistreDirectory` lit `Utilisateur`, `AttributionRole` (rôle le plus récent) et `Identite` via `GET /faits` ; `RegistreAuthService`                        |
+| `GET /roles`                    | `GET /faits?type=RoleMetier`                                  | ✅               | Codes : `agent, secretaire, assistant, chef_agence, caissiere, comptable, dg` (pas de Directeur adjoint ni de Gestionnaire)                                                 |
+| `GET/POST/PATCH /users`         | `POST /faits` (`Utilisateur`), `POST /utilisateurs/{u}/roles` | 🔜 étapes 2 et 8 | Pas de liste d'utilisateurs (demandée)                                                                                                                                      |
+| Matrice `permissions.config.ts` | `GET /habilitations`                                          | ✅               | Permissions UI dérivées des actions du back (`PERMISSION_RULES`, `derivePermissions`) ; repli sur la copie du 20/11 (`ROLE_ACTIONS_SNAPSHOT`) tant que la vue est en erreur |
 
 ### Référentiel et règles
 

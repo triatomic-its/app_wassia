@@ -8,7 +8,15 @@ import {
   requiredApprovals,
 } from './loan.config';
 import { BACKOFFICE_NAV } from './navigation.config';
-import { PERMISSIONS, ROLE_PERMISSIONS, hasPermission, permissionsOf } from './permissions.config';
+import {
+  PERMISSIONS,
+  REGISTRE_ACTIONS,
+  ROLE_ACTIONS_SNAPSHOT,
+  ROLE_PERMISSIONS,
+  derivePermissions,
+  hasPermission,
+  permissionsOf,
+} from './permissions.config';
 import {
   CLOSURE_WORKFLOW,
   ENROLLMENT_WORKFLOW,
@@ -25,26 +33,43 @@ describe('permission matrix', () => {
     }
   });
 
-  it('keeps the deputy DG read-only', () => {
-    const actions = ROLE_PERMISSIONS.DEPUTY_DG.filter(
-      (p) => !p.endsWith('.view') && p !== 'enrollment.monitor',
-    );
-    expect(actions).toEqual([]);
+  it('derives permissions from the registry actions', () => {
+    expect(derivePermissions('agent', ['associer_carte'])).toEqual(['card.assign']);
+    // Field collection needs both actions.
+    expect(derivePermissions('agent', ['encaisser_especes'])).not.toContain('collect.field');
+    expect(derivePermissions('caissiere', [])).toEqual([]);
+  });
+
+  it('applies loan thresholds by role, not only by habilitation', () => {
+    expect(derivePermissions('chef_agence', ['decider_pret'])).toEqual([
+      'loan.view',
+      'loan.approve.tier1',
+    ]);
+    expect(hasPermission('dg', 'loan.approve.tier2')).toBe(true);
+    expect(hasPermission('dg', 'loan.approve.tier3.dg')).toBe(true);
+    expect(hasPermission('comptable', 'loan.approve.tier3.accounting')).toBe(true);
+    expect(hasPermission('comptable', 'loan.approve.tier2')).toBe(false);
+  });
+
+  it('only uses actions known to the registry', () => {
+    for (const role of ROLES) {
+      for (const a of ROLE_ACTIONS_SNAPSHOT[role]) expect(REGISTRE_ACTIONS).toContain(a);
+    }
   });
 
   it('separates duties in the cash closure', () => {
-    expect(hasPermission('CASHIER', 'cash.closure.count')).toBe(true);
-    expect(hasPermission('CASHIER', 'cash.closure.check')).toBe(false);
-    expect(hasPermission('ACCOUNTANT', 'cash.closure.check')).toBe(true);
-    expect(hasPermission('ACCOUNTANT', 'cash.closure.close')).toBe(false);
-    expect(hasPermission('DG', 'cash.closure.close')).toBe(true);
-    expect(hasPermission('DG', 'cash.closure.count')).toBe(false);
+    expect(hasPermission('caissiere', 'cash.closure.count')).toBe(true);
+    expect(hasPermission('caissiere', 'cash.closure.check')).toBe(false);
+    expect(hasPermission('comptable', 'cash.closure.check')).toBe(true);
+    expect(hasPermission('comptable', 'cash.closure.close')).toBe(false);
+    expect(hasPermission('dg', 'cash.closure.close')).toBe(true);
+    expect(hasPermission('dg', 'cash.closure.count')).toBe(false);
   });
 
-  it('lets only agents enroll merchants and collect in the field', () => {
+  it('lets agents and secretaries enter files, and only agents collect in the field', () => {
     for (const role of ROLES) {
-      expect(hasPermission(role, 'member.enroll')).toBe(role === 'AGENT');
-      expect(hasPermission(role, 'collect.field')).toBe(role === 'AGENT');
+      expect(hasPermission(role, 'member.enroll')).toBe(role === 'agent' || role === 'secretaire');
+      expect(hasPermission(role, 'collect.field')).toBe(role === 'agent');
     }
   });
 
@@ -61,29 +86,29 @@ describe('workflow tables', () => {
     const manual = ENROLLMENT_WORKFLOW.filter((t) => t.actor !== 'SYSTEM');
     expect(manual.map((t) => t.from + '->' + t.to)).toEqual(['CARD_TO_ASSIGN->ACTIVE']);
     expect(
-      availableTransitions(ENROLLMENT_WORKFLOW, 'CARD_TO_ASSIGN', permissionsOf('AGENT')),
+      availableTransitions(ENROLLMENT_WORKFLOW, 'CARD_TO_ASSIGN', permissionsOf('agent')),
     ).toHaveLength(1);
     expect(
-      availableTransitions(ENROLLMENT_WORKFLOW, 'CARD_TO_ASSIGN', permissionsOf('DG')),
+      availableTransitions(ENROLLMENT_WORKFLOW, 'CARD_TO_ASSIGN', permissionsOf('dg')),
     ).toHaveLength(0);
   });
 
   it('walks the 3-level closure with one role per level', () => {
-    expect(canTransition(CLOSURE_WORKFLOW, 'LOCKED', 'COUNTED', permissionsOf('CASHIER'))).toBe(
+    expect(canTransition(CLOSURE_WORKFLOW, 'LOCKED', 'COUNTED', permissionsOf('caissiere'))).toBe(
       true,
     );
-    expect(canTransition(CLOSURE_WORKFLOW, 'COUNTED', 'CHECKED', permissionsOf('ACCOUNTANT'))).toBe(
+    expect(canTransition(CLOSURE_WORKFLOW, 'COUNTED', 'CHECKED', permissionsOf('comptable'))).toBe(
       true,
     );
-    expect(canTransition(CLOSURE_WORKFLOW, 'CHECKED', 'CLOSED', permissionsOf('DG'))).toBe(true);
-    expect(canTransition(CLOSURE_WORKFLOW, 'COUNTED', 'CHECKED', permissionsOf('CASHIER'))).toBe(
+    expect(canTransition(CLOSURE_WORKFLOW, 'CHECKED', 'CLOSED', permissionsOf('dg'))).toBe(true);
+    expect(canTransition(CLOSURE_WORKFLOW, 'COUNTED', 'CHECKED', permissionsOf('caissiere'))).toBe(
       false,
     );
-    expect(canTransition(CLOSURE_WORKFLOW, 'LOCKED', 'CLOSED', permissionsOf('DG'))).toBe(false);
+    expect(canTransition(CLOSURE_WORKFLOW, 'LOCKED', 'CLOSED', permissionsOf('dg'))).toBe(false);
   });
 
   it('never exposes SYSTEM transitions as buttons', () => {
-    expect(availableTransitions(CLOSURE_WORKFLOW, 'OPEN', permissionsOf('DG'))).toEqual([]);
+    expect(availableTransitions(CLOSURE_WORKFLOW, 'OPEN', permissionsOf('dg'))).toEqual([]);
     expect(canTransition(CLOSURE_WORKFLOW, 'OPEN', 'LOCKED', 'SYSTEM')).toBe(true);
   });
 

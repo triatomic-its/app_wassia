@@ -82,16 +82,16 @@ describe('mock back end', () => {
 
   it('logs in a demo profile and fills the session from /me', async () => {
     const { auth, session } = setup();
-    await auth.login({ role: 'CASHIER' });
-    expect(session.user()?.role).toBe('CASHIER');
+    await auth.login({ role: 'caissiere' });
+    expect(session.user()?.role).toBe('caissiere');
     expect(session.can('cash.closure.count')).toBe(true);
     expect(session.can('cash.closure.close')).toBe(false);
-    expect(sessionStorage.getItem('wassia.demo.role')).toBe('CASHIER');
+    expect(sessionStorage.getItem('wassia.demo.role')).toBe('caissiere');
   });
 
   it('restores the demo profile after a reload', async () => {
     const first = setup();
-    await first.auth.login({ role: 'DG' });
+    await first.auth.login({ role: 'dg' });
     TestBed.resetTestingModule();
     TestBed.configureTestingModule({
       providers: [
@@ -104,19 +104,19 @@ describe('mock back end', () => {
     });
     TestBed.inject(MockControl).update({ latencyMin: 0, latencyMax: 0 });
     await TestBed.inject(AuthService).restore();
-    expect(TestBed.inject(SessionStore).role()).toBe('DG');
+    expect(TestBed.inject(SessionStore).role()).toBe('dg');
   });
 
   it('paginates members and scopes agents to their own merchants', async () => {
     const { http, auth } = setup();
-    await auth.login({ role: 'MANAGER' });
+    await auth.login({ role: 'secretaire' });
     const all = await firstValueFrom(
       http.get<Page<Member>>('/api/v1/members', { params: { size: 10 } }),
     );
     expect(all.total).toBe(120);
     expect(all.items).toHaveLength(10);
 
-    await auth.login({ role: 'AGENT' });
+    await auth.login({ role: 'agent' });
     const mine = await firstValueFrom(
       http.get<Page<Member>>('/api/v1/members', { params: { size: 100 } }),
     );
@@ -126,7 +126,7 @@ describe('mock back end', () => {
 
   it('filters members by status and searches by name', async () => {
     const { http, auth, db } = setup();
-    await auth.login({ role: 'DG' });
+    await auth.login({ role: 'dg' });
     const pending = await firstValueFrom(
       http.get<Page<Member>>('/api/v1/members', { params: { status: 'SUSPENDED' } }),
     );
@@ -140,7 +140,7 @@ describe('mock back end', () => {
 
   it('refuses data the role may not see (403)', async () => {
     const { http, auth } = setup();
-    await auth.login({ role: 'CASHIER' });
+    await auth.login({ role: 'caissiere' });
     const err = await errorOf(firstValueFrom(http.get('/api/v1/cards')));
     expect(err.status).toBe(403);
     expect(err.error.message).toMatch(/pas le droit/);
@@ -148,7 +148,7 @@ describe('mock back end', () => {
 
   it('returns 404 for unknown routes and members', async () => {
     const { http, auth } = setup();
-    await auth.login({ role: 'DG' });
+    await auth.login({ role: 'dg' });
     expect((await errorOf(firstValueFrom(http.get('/api/v1/nope')))).status).toBe(404);
     expect((await errorOf(firstValueFrom(http.get('/api/v1/members/zzz')))).error.code).toBe(
       'MEMBER_NOT_FOUND',
@@ -157,7 +157,7 @@ describe('mock back end', () => {
 
   it('injects a fault once, then answers normally', async () => {
     const { http, auth, control } = setup();
-    await auth.login({ role: 'DG' });
+    await auth.login({ role: 'dg' });
     control.update({ fault: '500', faultOnce: true });
     expect((await errorOf(firstValueFrom(http.get('/api/v1/settings')))).status).toBe(500);
     await expect(firstValueFrom(http.get('/api/v1/settings'))).resolves.toMatchObject({
@@ -167,14 +167,14 @@ describe('mock back end', () => {
 
   it('simulates a network cut (status 0)', async () => {
     const { http, auth, control } = setup();
-    await auth.login({ role: 'DG' });
+    await auth.login({ role: 'dg' });
     control.update({ fault: 'network', faultOnce: true });
     expect((await errorOf(firstValueFrom(http.get('/api/v1/settings')))).status).toBe(0);
   });
 
   it('returns copies so callers cannot mutate the database', async () => {
     const { http, auth, db } = setup();
-    await auth.login({ role: 'DG' });
+    await auth.login({ role: 'dg' });
     const settings = await firstValueFrom(http.get<{ cashCeiling: number }>('/api/v1/settings'));
     settings.cashCeiling = 1;
     expect(db.snapshot.settings.cashCeiling).toBe(2_000_000);

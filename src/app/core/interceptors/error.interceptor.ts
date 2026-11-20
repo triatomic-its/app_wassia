@@ -3,6 +3,7 @@ import { inject } from '@angular/core';
 import { Router } from '@angular/router';
 import { catchError, throwError } from 'rxjs';
 import { API } from '../api/endpoints';
+import { HANDLED_ERRORS } from '../api/http-context';
 import { toApiError } from '../api/error.model';
 import { AuthService } from '../auth/auth.service';
 import { ToastService } from '../services/toast.service';
@@ -18,7 +19,11 @@ export const errorInterceptor: HttpInterceptorFn = (req, next) => {
   const toast = inject(ToastService);
   return next(req).pipe(
     catchError((error: unknown) => {
-      if (error instanceof HttpErrorResponse && isApiUrl(req.url)) {
+      if (
+        error instanceof HttpErrorResponse &&
+        isApiUrl(req.url) &&
+        !req.context.get(HANDLED_ERRORS)
+      ) {
         const isMe = req.url.endsWith(API.me);
         if (error.status === 401 && !isMe) {
           void auth.logout().then(() => router.navigate(['/connexion']));

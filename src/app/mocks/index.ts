@@ -16,6 +16,7 @@ import { MockControl } from './control';
 import { MockDb } from './db';
 import { DevPanel } from './dev-panel/dev-panel.component';
 import { mockBackendInterceptor } from './mock-backend.interceptor';
+import { registreBridgeInterceptor } from './registre-bridge.interceptor';
 import { MockScanner } from './scanner';
 
 /**
@@ -23,7 +24,9 @@ import { MockScanner } from './scanner';
  * `index.prod.ts` (angular.json fileReplacements), so nothing from mocks/ is bundled.
  */
 export const MOCK_INTERCEPTORS: HttpInterceptorFn[] = environment.useMock
-  ? [mockBackendInterceptor]
+  ? environment.useRegistre
+    ? [registreBridgeInterceptor, mockBackendInterceptor]
+    : [mockBackendInterceptor]
   : [];
 
 export const MOCK_PROVIDERS: (Provider | EnvironmentProviders)[] = environment.useMock
@@ -32,7 +35,8 @@ export const MOCK_PROVIDERS: (Provider | EnvironmentProviders)[] = environment.u
       MockControl,
       MockScanner,
       { provide: SIMULATED_QR_SCANS, useFactory: () => inject(MockScanner).scans$ },
-      { provide: AuthService, useClass: MockAuthService },
+      // With the registry, login goes through RegistreAuthService (app.config.ts).
+      ...(environment.useRegistre ? [] : [{ provide: AuthService, useClass: MockAuthService }]),
       provideAppInitializer(() => {
         // Restore the clock offset before anything reads "now".
         inject(MockControl);

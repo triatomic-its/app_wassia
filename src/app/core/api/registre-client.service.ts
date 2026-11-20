@@ -1,4 +1,4 @@
-import { HttpClient, HttpParams } from '@angular/common/http';
+import { HttpClient, HttpContext, HttpParams } from '@angular/common/http';
 import { Injectable, inject } from '@angular/core';
 import { Observable } from 'rxjs';
 import { environment } from '@env/environment';
@@ -19,8 +19,8 @@ export class RegistreClient {
     return `${this.base}${path}`;
   }
 
-  get<T>(path: string, params?: Params): Observable<T> {
-    return this.http.get<T>(this.url(path), { params });
+  get<T>(path: string, params?: Params, context?: HttpContext): Observable<T> {
+    return this.http.get<T>(this.url(path), { params, context });
   }
 
   post<T>(path: string, body: unknown = {}): Observable<T> {

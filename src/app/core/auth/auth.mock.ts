@@ -1,13 +1,15 @@
 import { Injectable, inject, signal } from '@angular/core';
-import { ROLES, Role } from '../models';
-import { AuthService, LoginOptions, MeLoader } from './auth.service';
+import { FR } from '../i18n/fr';
+import { ROLES, isRole } from '../models';
+import { AuthService, LoginOptions, LoginProfile, MeLoader } from './auth.service';
+import { safeSession } from './safe-session';
 import { SessionStore } from './session.store';
 
 /** Dev convenience only: remembers the chosen demo profile for this browser tab (not a credential). */
 const DEMO_ROLE_KEY = 'wassia.demo.role';
 
 /**
- * Simulated authentication for development. The "token" is `mock.<ROLE>`, understood only by
+ * Simulated authentication for development. The "token" is `mock.<role>`, understood only by
  * the mock back end. Same interface as the OIDC implementation.
  */
 @Injectable()
@@ -21,8 +23,15 @@ export class MockAuthService extends AuthService {
     return this.token();
   }
 
+  /** One demo profile per role; its id is the role. */
+  override profiles(): Promise<LoginProfile[]> {
+    return Promise.resolve(
+      ROLES.map((role) => ({ id: role, role, label: FR.roles[role], hint: FR.roleHints[role] })),
+    );
+  }
+
   async login(options: LoginOptions = {}): Promise<void> {
-    const role = options.role ?? 'DG';
+    const role = options.role ?? (isRole(options.profileId) ? options.profileId : 'dg');
     this.token.set(`mock.${role}`);
     try {
       await this.me.load();
@@ -39,9 +48,9 @@ export class MockAuthService extends AuthService {
 
   async restore(): Promise<void> {
     const saved = safeSession()?.getItem(DEMO_ROLE_KEY);
-    if (!saved || !ROLES.includes(saved as Role)) return;
+    if (!isRole(saved)) return;
     try {
-      await this.login({ role: saved as Role });
+      await this.login({ role: saved });
     } catch {
       // Stay logged out: the login page is shown.
     }
@@ -51,13 +60,5 @@ export class MockAuthService extends AuthService {
     this.token.set(null);
     this.session.clear();
     safeSession()?.removeItem(DEMO_ROLE_KEY);
-  }
-}
-
-function safeSession(): Storage | null {
-  try {
-    return typeof sessionStorage === 'undefined' ? null : sessionStorage;
-  } catch {
-    return null;
   }
 }

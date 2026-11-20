@@ -41,7 +41,7 @@ async function setup() {
     ],
   });
   TestBed.inject(MockControl).update({ latencyMin: 0, latencyMax: 0, fault: 'none' });
-  await TestBed.inject(AuthService).login({ role: 'AGENT' });
+  await TestBed.inject(AuthService).login({ role: 'agent' });
   const db = TestBed.inject(MockDb);
   const blank = db.snapshot.cards.find((c) => c.status === 'UNASSIGNED')!;
   return { http: TestBed.inject(HttpClient), db, blank };
@@ -276,7 +276,7 @@ describe('agent enrollment (mock server): pay on the spot, then scan the card', 
 
   it('refuses enrollment to roles other than agents (403)', async () => {
     const { http } = await setup();
-    await TestBed.inject(AuthService).login({ role: 'CASHIER' });
+    await TestBed.inject(AuthService).login({ role: 'caissiere' });
     expect((await errorOf(firstValueFrom(http.post('/api/v1/members', MERCHANT)))).status).toBe(
       403,
     );

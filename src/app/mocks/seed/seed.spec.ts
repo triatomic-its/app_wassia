@@ -14,7 +14,7 @@ describe('seedMockData', () => {
 
   it('has one user per role plus six agents', () => {
     expect(data.users).toHaveLength(12);
-    expect(data.users.filter((u) => u.role === 'AGENT')).toHaveLength(6);
+    expect(data.users.filter((u) => u.role === 'agent')).toHaveLength(6);
   });
 
   it('spreads 120 members over 3 markets, all paid; a few still waiting for their card', () => {
@@ -114,7 +114,7 @@ describe('seedMockData', () => {
       expect(l.monthly).toBe(computeLoanSchedule(l.amount, l.months).monthly);
     }
     const big = data.loans.find((l) => l.status === 'LATE_2')!;
-    expect(big.approvals.map((a) => a.role).sort()).toEqual(['ACCOUNTANT', 'DG']);
+    expect(big.approvals.map((a) => a.role).sort()).toEqual(['comptable', 'dg']);
     expect(data.members.find((m) => m.id === big.memberId)?.status).toBe('SUSPENDED');
   });
 

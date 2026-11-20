@@ -146,7 +146,7 @@ export class Styleguide {
   /** Logs in as another demo profile (same as the dev panel). */
   protected async preview(role: Role): Promise<void> {
     await this.auth.login({ role });
-    if (role === 'AGENT') await this.router.navigateByUrl('/agent/accueil');
+    if (role === 'agent') await this.router.navigateByUrl('/agent/accueil');
   }
 
   protected askReason(): void {

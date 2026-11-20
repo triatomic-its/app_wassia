@@ -223,7 +223,7 @@ export function assignCard(
 ): CardAssignResult {
   const member = data.members.find((m) => m.id === memberId);
   if (!member) throw fail(404, 'MEMBER_NOT_FOUND', 'Marchand introuvable.');
-  if (agent.role === 'AGENT' && member.agentId !== agent.id) {
+  if (agent.role === 'agent' && member.agentId !== agent.id) {
     throw fail(403, 'NOT_YOUR_MERCHANT', 'Ce marchand est suivi par un autre agent.');
   }
   if (member.status !== 'CARD_TO_ASSIGN') {

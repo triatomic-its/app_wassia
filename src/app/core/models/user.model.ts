@@ -1,26 +1,35 @@
+/**
+ * Business roles, exactly the codes of the back end (`RoleMetier.code` in the registry).
+ * Since 2026-11-20 the back end is the reference: no deputy director, no "gestionnaire".
+ */
 export type Role =
-  | 'DG'
-  /** Directeur adjoint — read-only (ASSUMPTION A15). */
-  | 'DEPUTY_DG'
-  /** Chef d'agence — approves loans up to 500 000 F. */
-  | 'BRANCH_MANAGER'
-  /** Gestionnaire — monitors enrollments. */
-  | 'MANAGER'
-  | 'ACCOUNTANT'
-  | 'CASHIER'
-  | 'AGENT';
+  | 'agent'
+  /** Secrétaire — enters and checks enrollment files, requests loans. */
+  | 'secretaire'
+  /** Assistant — checks documents, studies loan requests. */
+  | 'assistant'
+  /** Chef d'agence — validates files, approves loans of 250 000 – 500 000 F. */
+  | 'chef_agence'
+  | 'caissiere'
+  | 'comptable'
+  | 'dg';
 
 export const ROLES: readonly Role[] = [
-  'DG',
-  'DEPUTY_DG',
-  'BRANCH_MANAGER',
-  'MANAGER',
-  'ACCOUNTANT',
-  'CASHIER',
-  'AGENT',
+  'dg',
+  'chef_agence',
+  'secretaire',
+  'assistant',
+  'comptable',
+  'caissiere',
+  'agent',
 ];
 
+export function isRole(value: unknown): value is Role {
+  return typeof value === 'string' && (ROLES as readonly string[]).includes(value);
+}
+
 export interface User {
+  /** In the registry: the hash of the `Utilisateur` fact. */
   id: string;
   fullName: string;
   phone: string;

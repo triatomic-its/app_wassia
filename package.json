@@ -11,7 +11,8 @@
     "prepare": "husky",
     "test:watch": "ng test",
     "format": "prettier --write \"src/**/*.{ts,html,css,json}\"",
-    "verify": "npm run lint && npm run test && npm run build"
+    "verify": "npm run lint && npm run test && npm run build",
+    "seed:registre": "node scripts/seed-registre.mjs"
   },
   "private": true,
   "packageManager": "npm@11.19.1",

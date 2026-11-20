@@ -68,3 +68,10 @@
 - **Vérifié** : lint, 128 tests, build ; proxy testé contre le serveur local (`/sante`, `/caisse/date`).
 - **Reste** : étape 2 (rôles du back, habilitations, connexion par utilisateur du registre, script de seed), puis référentiel et parcours agent. **Bloquant côté back** : vues `/comptes`, `/cartes`, `/identites`, `/decisions`, `/habilitations`, `/baremes` en « erreur du registre », `/regles/{champ}` « registre indisponible ».
 - **Hypothèses** : A26 à A30 ajoutées ; A1, A2, A4, A5, A11, A15, A17 remplacées par le registre.
+
+## Intégration du registre — étape 2 : rôles, permissions, connexion (2026-11-20)
+
+- **Fait** : rôles = codes du back (`agent, secretaire, assistant, chef_agence, caissiere, comptable, dg` ; plus de Directeur adjoint ni de Gestionnaire) ; permissions des écrans **dérivées des habilitations du back** (`PERMISSION_RULES` + `derivePermissions`, repli sur la copie du 20/11 tant que `GET /habilitations` est en erreur, sans toast) ; `RegistreAuthService` (choix d'un utilisateur du registre, hachage gardé en mémoire + onglet), `RegistreDirectory`, `ActorService` ; écran de connexion piloté par `AuthService.profiles()` (squelette, état vide « Réessayer ») ; faux back relié à la session du registre (mode hybride) ; `npm run seed:registre` (12 utilisateurs, 50 cartes vierges, rejouable).
+- **Vérifié** : lint, 135 tests, build (initial 404 kB) ; dans le navigateur contre le serveur local : 12 comptes listés, agent → accueil agent, session gardée au rechargement, DG → supervision (390 et 1440 px).
+- **Reste** : étape 3 (règle produit, référentiel, date de caisse), puis parcours agent (étape 4).
+- **Hypothèses** : A31, A32 ajoutées.

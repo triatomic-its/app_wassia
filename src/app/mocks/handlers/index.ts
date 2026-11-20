@@ -10,7 +10,7 @@ import { MockData } from '../seed/seed';
 /** Agents only see their own merchants and collections. */
 function scopeToAgent<T extends { agentId?: string }>(ctx: MockContext, items: T[]): T[] {
   const user = ctx.user;
-  return user?.role === 'AGENT' ? items.filter((i) => i.agentId === user.id) : items;
+  return user?.role === 'agent' ? items.filter((i) => i.agentId === user.id) : items;
 }
 
 function filterBy<T>(items: T[], ctx: MockContext, fields: (keyof T & string)[]): T[] {

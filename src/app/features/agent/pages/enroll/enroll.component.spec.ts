@@ -37,7 +37,7 @@ function render(configure?: (api: ApiStub) => void) {
       id: 'u-ag1',
       fullName: 'Koffi Amani',
       phone: '',
-      role: 'AGENT',
+      role: 'agent',
       active: true,
       zone: 'Marcory',
     },
